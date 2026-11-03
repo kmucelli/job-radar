@@ -1,0 +1,30 @@
+{
+  "name": "job-radar",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Local job-search dashboard: scrapes job portals, scores postings against your CV, and tracks applications. Runs entirely on your machine.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "scripts": {
+    "start": "bun run serve.ts --port 8899",
+    "dev": "bun run --watch serve.ts --port 8899",
+    "scrape": "bun run scrape-daily.ts --jobage 1",
+    "scrape:week": "bun run scrape-daily.ts --jobage 7",
+    "rescore": "bun run scrape-daily.ts --rescore",
+    "langs": "bun run scrape-daily.ts --rescore --fetch-details",
+    "keywords": "bun -e \"import{cvKeywords}from'./cv-keywords.ts';const r=cvKeywords({limit:12});console.log(JSON.stringify(r.keywords,null,2))\"",
+    "careers": "bun run careers.ts --probe",
+    "test": "bun test"
+  },
+  "keywords": [
+    "job-search",
+    "dashboard",
+    "scraper",
+    "cv-matching",
+    "bun",
+    "self-hosted"
+  ]
+}

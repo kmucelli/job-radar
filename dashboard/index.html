@@ -1,0 +1,3789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Radar</title>
+  <style>
+    /* ------------------------------------------------------------------
+       Palette: high-end gold on near-black.
+       Deliberately dark-first and applied in BOTH the default and the
+       prefers-color-scheme:dark block, so the dashboard looks identical
+       regardless of the OS setting rather than flipping to a white theme.
+       Gold is reserved for actions and selection only — using it for text
+       or borders as well makes it read as a warning, not as premium.
+       ------------------------------------------------------------------ */
+    :root {
+      --bg: #0b0b0c;
+      --bg-subtle: #131316;
+      --bg-card: #17171a;
+      --bg-active: #202024;
+      --fg: #f4f4f0;
+      --fg-muted: #9b9ba3;
+      --border: #2a2a2f;
+      --border-hover: #4a4a52;
+      --accent: #ffc300;
+      --accent-hover: #ffd447;
+      --accent-fg: #0b0b0c;
+      --success: #34d399;
+      --success-bg: rgba(52, 211, 153, 0.10);
+      --success-border: rgba(52, 211, 153, 0.22);
+      --warning: #fbbf24;
+      --warning-bg: rgba(251, 191, 36, 0.10);
+      --warning-border: rgba(251, 191, 36, 0.22);
+      --error: #f87171;
+      --error-bg: rgba(248, 113, 113, 0.10);
+      --error-border: rgba(248, 113, 113, 0.22);
+      --radius: 8px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.6);
+      --shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.8), 0 2px 6px -2px rgba(0, 0, 0, 0.6);
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --scrape-grad-1: #ffc300;
+      --scrape-grad-2: #ff9d00;
+      --scrape-glow: rgba(255, 195, 0, 0.38);
+      --scrape-disabled-bg: #232327;
+      --scrape-disabled-fg: #6b6b73;
+    }
+
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0b0c;
+        --bg-subtle: #131316;
+        --bg-card: #17171a;
+        --bg-active: #202024;
+        --fg: #f4f4f0;
+        --fg-muted: #9b9ba3;
+        --border: #2a2a2f;
+        --border-hover: #4a4a52;
+        --accent: #ffc300;
+        --accent-hover: #ffd447;
+        --accent-fg: #0b0b0c;
+        --success: #34d399;
+        --success-bg: rgba(52, 211, 153, 0.10);
+        --success-border: rgba(52, 211, 153, 0.22);
+        --warning: #fbbf24;
+        --warning-bg: rgba(251, 191, 36, 0.10);
+        --warning-border: rgba(251, 191, 36, 0.22);
+        --error: #f87171;
+        --error-bg: rgba(248, 113, 113, 0.10);
+        --error-border: rgba(248, 113, 113, 0.22);
+        --scrape-grad-1: #ffc300;
+        --scrape-grad-2: #ff9d00;
+        --scrape-glow: rgba(255, 195, 0, 0.38);
+        --scrape-disabled-bg: #232327;
+        --scrape-disabled-fg: #6b6b73;
+      }
+
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.375rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--fg);
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .btn:hover:not(:disabled) {
+      background: var(--bg-active);
+      border-color: var(--border-hover);
+      color: #fff;
+    }
+    /* Gold hairline on keyboard focus — visible without shouting. */
+    .btn:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255, 195, 0, 0.25);
+    }
+    .btn:active:not(:disabled) { background: var(--bg-active); }
+
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--accent-fg);
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      color: var(--accent-fg);
+    }
+    /* Secondary/mini buttons pick up a gold edge on hover rather than a fill,
+       so only one control on screen is ever solid gold. */
+    .btn-mini:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(255, 195, 0, 0.07);
+    }
+
+
+    /* Page header — scrolls away normally. It is deliberately NOT sticky: it
+       carries the title plus the CV and Scraper panels, and pinning all of that
+       consumed ~443px of a 769px viewport, which made the page feel frozen. */
+    .page-header {
+      padding: 1.5rem 1.5rem 0 1.5rem;
+    }
+
+    /* Sticky Top Container — tabs + filter toolbar only (~105px). */
+    .sticky-top {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem 0.75rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      /* No max-height/overflow here. Capping it at 45vh made the pinned bar
+         grow its own scrollbar as soon as the filter row wrapped, which looked
+         broken and put a second scroll region on the page. The bar is compact
+         enough to size to its content. */
+      overflow: visible;
+    }
+
+    .sticky-top::after {
+      content: '';
+      position: absolute;
+      bottom: -10px; left: 0; right: 0;
+      height: 10px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.05), transparent);
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    @media (prefers-color-scheme: dark) {
+      .sticky-top::after { background: linear-gradient(to bottom, rgba(0,0,0,0.2), transparent); }
+    }
+
+    /* Header & API Panels */
+    .header-layout {
+      display: flex;
+      gap: 2rem;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .header-main {
+      flex: 1 1 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .header-main h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; line-height: 1.2; }
+    .header-main .subtitle { color: var(--fg-muted); font-size: 0.875rem; }
+    
+    .api-panels {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      flex: 0 0 auto;
+    }
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      min-width: 280px;
+      max-width: 320px;
+      box-shadow: var(--shadow-sm);
+    }
+    .panel-title { font-weight: 600; font-size: 0.875rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* CV Panel */
+    .cv-dropzone {
+      border: 1px dashed var(--border-hover);
+      border-radius: 6px;
+      padding: 1rem;
+      text-align: center;
+      transition: all 0.2s;
+      background: var(--bg-subtle);
+      position: relative;
+    }
+    .cv-dropzone.dragover { background: var(--bg-active); border-color: var(--accent); }
+    .cv-info { font-size: 0.875rem; margin-bottom: 0.75rem; }
+    .cv-info strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cv-info .meta { color: var(--fg-muted); font-size: 0.75rem; margin-top: 0.25rem; }
+    .cv-disclaimer { font-size: 0.7rem; color: var(--fg-muted); margin-top: 0.75rem; text-align: left; line-height: 1.4; }
+
+    /* The upload control is a real <label for> driving a visually-hidden file
+       input. The previous version stacked a transparent file input on top of a
+       fake <button> that had pointer-events:none — so :hover/:active never
+       fired on it and the control felt dead even though clicking did work.
+       A label gets native click-to-open plus genuine interactive states, and
+       stays keyboard reachable through the input itself. */
+    .cv-file-input {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+    .cv-upload-btn {
+      display: block;
+      width: 100%;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: var(--accent-fg);
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      font-weight: 600;
+      line-height: 1.4;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.15s ease, border-color 0.15s ease,
+                  transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .cv-upload-btn:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+    .cv-upload-btn:active { background: #e6ae00; border-color: #e6ae00; }
+    /* :focus-visible cannot apply to the label, so mirror the input's focus. */
+    .cv-file-input:focus-visible + .cv-upload-btn,
+    .cv-upload-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+    }
+    .cv-dropzone:hover .cv-upload-btn { background: var(--accent-hover); border-color: var(--accent-hover); }
+    @media (prefers-reduced-motion: reduce) {
+      .cv-upload-btn { transition: none; }
+      .cv-upload-btn:hover, .cv-upload-btn:active { transform: none; }
+    }
+    .cv-msg { font-size: 0.75rem; margin-top: 0.5rem; font-weight: 500; }
+    .cv-msg.error { color: var(--error); }
+    .cv-msg.success { color: var(--success); }
+
+    /* Scrape Panel */
+    .scrape-form { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+    .scrape-form label { font-size: 0.875rem; color: var(--fg-muted); white-space: nowrap; }
+    .scrape-form input[type="number"] { width: 64px; text-align: center; }
+    /* Strip the native spinner arrows — they are tiny, hard to hit, and this
+       field is a plain 1-30 value that is quicker to type than to click up to. */
+    .scrape-form input[type="number"]::-webkit-outer-spin-button,
+    .scrape-form input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      appearance: none;
+      margin: 0;
+    }
+    .scrape-form input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+    .scrape-form .unit { font-size: 0.875rem; color: var(--fg-muted); }
+    
+    .scrape-action-row {
+      display: flex;
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    
+    /* Primary action. Flat gold, black label, no motion: the button used to
+       lift on hover and sink on press with a spring curve, which read as
+       gimmicky next to the rest of the UI. Colour alone carries the state. */
+    .btn.btn-scrape {
+      width: 100%;
+      background: var(--accent);
+      color: var(--accent-fg);
+      border: 1px solid var(--accent);
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      font-size: 0.85rem;
+      transition: background-color 0.12s ease, border-color 0.12s ease;
+    }
+
+    .btn.btn-scrape:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      color: var(--accent-fg);
+    }
+
+    .btn.btn-scrape:active:not(:disabled) {
+      background: #e6ae00;
+      border-color: #e6ae00;
+    }
+
+    .btn.btn-scrape:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+    }
+
+    .btn.btn-scrape:disabled {
+      background: var(--scrape-disabled-bg);
+      color: var(--scrape-disabled-fg);
+      border-color: var(--border);
+      opacity: 1;
+    }
+
+    .scrape-hint { font-size: 0.75rem; color: var(--fg-muted); margin-bottom: 0.75rem; line-height: 1.4; }
+
+
+/* --- Smart Search panel -------------------------------------------------- */
+.smart-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.btn-mini { padding: 0.15rem 0.5rem; font-size: 0.75rem; line-height: 1.5; }
+.smart-groups { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.5rem 0 0.75rem; }
+/* ---------------------------------------------------------------------------
+   Keyword group: the typed term on the left, its expansions revealed to the
+   right on hover.
+   Collapsed by default because a dozen keywords x ~7 synonyms filled the whole
+   panel and buried the controls. The synonyms are still part of the query while
+   hidden — the +N badge on the chip says how many.
+   The 0fr -> 1fr grid track is what makes the width animate; animating
+   max-width or display cannot be transitioned smoothly.
+   --------------------------------------------------------------------------- */
+.smart-group {
+  display: flex; align-items: flex-start; gap: 0.4rem;
+  border-left: 2px solid var(--border); padding-left: 0.5rem;
+  outline: none;
+}
+.smart-group > .smart-chip.main { flex: 0 0 auto; }
+/* The reveal is anchored to the chip and taken OUT OF FLOW. Inline, it grew the
+   row on hover and shoved every keyword below it (and the CV suggestions) down
+   the page. As an overlay it changes nothing in the layout.
+   The panel is capped at 320px, so the popover is allowed to extend past its
+   right edge — that is also what stops the chips wrapping one word per line. */
+.smart-anchor { position: relative; display: inline-flex; }
+.smart-reveal {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 0.5rem);
+  z-index: 60;
+  width: max-content;
+  max-width: 320px;
+  padding: 0.4rem 0.45rem;
+  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-hover);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-50%) translateX(-8px);
+  transition: opacity 0.2s ease,
+              transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1),
+              visibility 0s linear 0.2s;
+}
+.smart-group:hover .smart-reveal,
+.smart-group:focus-within .smart-reveal {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) translateX(0);
+  transition-delay: 0s, 0s, 0s;
+}
+.smart-reveal-inner { min-width: 0; }
+.smart-reveal .smart-sub { margin-top: 0; }
+/* Staggered entry: each chip slides in slightly after the previous one. */
+.smart-reveal .smart-chip.sub {
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition-delay: 0s;
+}
+.smart-group:hover .smart-chip.sub,
+.smart-group:focus-within .smart-chip.sub {
+  opacity: 1;
+  transform: none;
+  transition-delay: calc(60ms + var(--i, 0) * 28ms);
+}
+/* Count of related terms still active while the group is collapsed. */
+.smart-more {
+  font-size: 0.65rem; font-weight: 700; opacity: 0.75;
+  padding-left: 0.15rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smart-reveal, .smart-reveal .smart-chip.sub { transition: none; }
+}
+
+.smart-sub { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.3rem; }
+.smart-sub.muted, .smart-sub .muted, .muted { color: var(--fg-muted); font-size: 0.75rem; }
+.smart-sec-title { font-size: 0.75rem; font-weight: 600; color: var(--fg-muted); margin: 0.75rem 0 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.smart-chip {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.15rem 0.45rem; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg-subtle);
+  font-size: 0.75rem; color: var(--fg); cursor: pointer; font-family: inherit;
+}
+.smart-chip:hover { border-color: var(--accent); color: var(--accent); }
+/* The typed keyword is the one solid-gold element in the group; its expansions
+   stay neutral so the hierarchy is obvious at a glance. */
+.smart-chip.main {
+  background: var(--accent); color: var(--accent-fg); border-color: var(--accent);
+  cursor: default; font-weight: 600;
+  box-shadow: 0 2px 10px rgba(255, 195, 0, 0.22);
+}
+.smart-chip.main:hover { color: var(--accent-fg); }
+.smart-chip.main .smart-x:hover { color: #0b0b0c; opacity: 1; }
+/* Active expansions get a subtle gold wash so "included" reads instantly. */
+.smart-chip.sub:not(.off) { border-color: rgba(255, 195, 0, 0.35); }
+.smart-group { border-left-color: rgba(255, 195, 0, 0.45) !important; }
+
+/* Deselected: still visible and clickable to restore, but clearly excluded. */
+.smart-chip.off { opacity: 0.45; text-decoration: line-through; }
+/* Native-language title for a market outside the selected scope: kept in the
+   list, but not searched until the scope covers it. */
+.smart-chip.out-of-scope { opacity: 0.35; border-style: dashed; }
+.smart-src { font-size: 0.65rem; opacity: 0.7; }
+.smart-x { background: none; border: none; color: inherit; cursor: pointer; font-size: 0.9rem; line-height: 1; padding: 0 0 0 0.15rem; }
+.smart-check { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; margin: 0.5rem 0; }
+
+/* Header actions (Clear / Close) sit together on the right. */
+.smart-head-actions { display: inline-flex; align-items: center; gap: 0.35rem; }
+/* Keyword entry is the primary action: give it a clear focus ring and let the
+   Add button sit flush beside it. */
+#smart-input {
+  flex: 1 1 auto; min-width: 0;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+#smart-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+/* Run button directly under the input once keywords exist — full width so it
+   reads as the panel's primary action rather than another chip. */
+#smart-run { width: 100%; }
+.smart-groups { padding-top: 0.15rem; }
+/* Live count of terms that will actually be searched. */
+.smart-count {
+  display: inline-block; margin-left: 0.35rem; padding: 0.05rem 0.4rem;
+  border-radius: 999px; background: var(--accent); color: var(--accent-fg);
+  font-size: 0.7rem; font-weight: 600; vertical-align: middle;
+}
+/* A CV suggestion is a two-part chip: the body adds it, the x dismisses it.
+   Padding is dropped on the wrapper so the two buttons fill the pill. */
+.smart-chip.cv { padding: 0; overflow: hidden; }
+.smart-chip.cv .smart-chip-body {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: none; border: none; color: inherit; cursor: pointer;
+  font-family: inherit; font-size: inherit;
+  padding: 0.15rem 0.2rem 0.15rem 0.45rem;
+}
+.smart-chip.cv .smart-x { padding: 0.15rem 0.4rem 0.15rem 0.15rem; opacity: 0.55; }
+.smart-chip.cv .smart-x:hover { opacity: 1; color: var(--danger, #ef4444); }
+/* Already in the keyword list — shown for context but not re-addable. */
+.smart-chip.cv.added { opacity: 0.5; border-style: dashed; }
+.smart-chip.cv.added .smart-chip-body { cursor: default; }
+.smart-chip.cv.added .smart-chip-body::before { content: '✓ '; }
+
+@media (max-width: 640px) { .smart-sub { gap: 0.2rem; } .smart-chip { font-size: 0.7rem; } }
+
+
+    /* Progress bar. Percentage lives in the label above the track so it stays
+       legible at 0% and in both colour schemes. */
+    .scrape-progress { margin-top: 0.5rem; }
+    .scrape-progress-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 0.5rem; font-size: 0.75rem; color: var(--fg-muted); margin-bottom: 0.25rem;
+    }
+    .scrape-progress-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .scrape-progress-pct { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--fg); }
+    .scrape-progress-track {
+      height: 8px; width: 100%; border-radius: 999px;
+      background: var(--bg-active); overflow: hidden;
+    }
+    .scrape-progress-fill {
+      height: 100%; border-radius: 999px; background: var(--accent);
+      transition: width 0.35s ease;
+    }
+    .scrape-progress-fill.done { background: var(--success); }
+    .scrape-progress-fill.failed { background: var(--error); }
+    /* Denominator unknown yet (scraper has not announced its total): show motion
+       instead of a misleading 0%. */
+    .scrape-progress-fill.indeterminate {
+      width: 35% !important;
+      animation: scrape-indeterminate 1.2s ease-in-out infinite;
+    }
+    @keyframes scrape-indeterminate {
+      0%   { margin-left: -35%; }
+      100% { margin-left: 100%; }
+    }
+    .scrape-status { font-size: 0.875rem; margin-top: 0.5rem; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; }
+    
+    /* Banners */
+    .banner {
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      font-weight: 500;
+      border: 1px solid transparent;
+      margin-top: 0.5rem;
+    }
+    .banner.warning { background-color: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); }
+    .banner.info { background-color: var(--bg-subtle); color: var(--fg); border-color: var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+    .banner-close { cursor: pointer; color: var(--fg-muted); background: none; border: none; font-size: 1.25rem; line-height: 1; padding: 0 0.25rem; }
+    .banner-close:hover { color: var(--fg); }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--bg-subtle);
+      padding: 0.375rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      gap: 0.25rem;
+      align-self: flex-start;
+    }
+    .tab {
+      user-select: none;
+      -webkit-user-select: none;
+      background: transparent;
+      border: none;
+      padding: 0.5rem 1.25rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--fg-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .tab:hover { color: var(--fg); }
+    .tab.active { background: var(--bg-card); color: var(--fg); box-shadow: var(--shadow-sm); }
+    /* Country switcher. A themed popup rather than a native <select>: the OS
+       draws select option lists itself and ignores the page colours, which on
+       the dark theme produced a white panel with a blue highlight. */
+    .tab-chevron {
+      width: 0.4rem;
+      height: 0.4rem;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: translateY(-2px) rotate(45deg);
+      opacity: 0.65;
+      margin-left: 0.15rem;
+    }
+    .tab-country[aria-expanded="true"] .tab-chevron {
+      transform: translateY(2px) rotate(225deg);
+    }
+    .country-menu {
+      position: fixed;
+      z-index: 9999;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 0.25rem;
+      min-width: 190px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      /* Menu labels are controls, not prose. Without this, clicking through the
+         list drag-selects the text and leaves a stray highlight block behind
+         the count that looks like a rendering bug. */
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .country-menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: none;
+      background: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--fg-muted);
+      text-align: left;
+      transition: background-color 0.12s ease, color 0.12s ease;
+    }
+    .country-menu-item:hover, .country-menu-item:focus-visible {
+      background: var(--bg-active);
+      color: var(--fg);
+      outline: none;
+    }
+    /* The country currently being viewed, tinted with the same accent the
+       active tab uses so the two agree at a glance. */
+    .country-menu-item.is-current {
+      background: var(--accent);
+      color: var(--accent-fg);
+    }
+    .country-menu-item.is-current .badge-count {
+      /* Transparent rather than a translucent white block: on the accent fill
+         that block read as an accidental selection rectangle. */
+      background: transparent;
+      color: var(--accent-fg);
+      font-weight: 700;
+    }
+    /* Countries with nothing in them stay listed (so you can always scrape or
+       switch to them) but are visibly inert. */
+    .country-menu-item.is-empty { opacity: 0.45; }
+    .tab .badge-count {
+      background: var(--border);
+      color: var(--fg);
+      padding: 0.125rem 0.375rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+    }
+    .tab.active .badge-count { background: var(--accent); color: var(--accent-fg); }
+
+    /* Filters Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      align-items: flex-end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 0.375rem; }
+    .filter-label { font-size: 0.75rem; font-weight: 600; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    
+    input[type="text"], input[type="number"], select {
+      background: var(--bg-card);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.875rem;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    input[type="text"] { width: 260px; }
+    
+    .checkboxes { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; min-height: 34px; }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-size: 0.875rem;
+      cursor: pointer;
+      user-select: none;
+      color: var(--fg);
+    }
+    input[type="checkbox"] { accent-color: var(--accent); width: 1rem; height: 1rem; cursor: pointer; }
+
+    /* "Language req." filter: looks like the selects beside it, opens a themed
+       checklist (same panel as the country menu) instead of an OS-drawn list. */
+    .lang-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      min-width: 170px;
+      max-width: 260px;
+      background: var(--bg-card);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.875rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .lang-btn:hover { border-color: var(--border-hover); }
+    .lang-btn:focus-visible, .lang-btn[aria-expanded="true"] {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .lang-btn[aria-expanded="true"] .tab-chevron { transform: translateY(2px) rotate(225deg); }
+    .lang-btn-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lang-menu-head {
+      padding: 0.375rem 0.75rem 0.25rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+    }
+    .lang-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--fg);
+      cursor: pointer;
+    }
+    .lang-menu-item:hover { background: var(--bg-active); }
+    .lang-menu-item .badge-count {
+      margin-left: auto;
+      background: var(--border);
+      color: var(--fg);
+      padding: 0.125rem 0.375rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+    }
+    .lang-menu-empty { padding: 0.5rem 0.75rem; max-width: 240px; font-size: 0.8rem; color: var(--fg-muted); }
+    .lang-menu-actions {
+      display: flex;
+      gap: 0.25rem;
+      margin-top: 0.25rem;
+      padding-top: 0.25rem;
+      border-top: 1px solid var(--border);
+    }
+    .lang-menu-actions button {
+      flex: 1;
+      padding: 0.4rem;
+      border: none;
+      border-radius: 6px;
+      background: none;
+      color: var(--fg-muted);
+      font: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .lang-menu-actions button:hover { background: var(--bg-active); color: var(--fg); }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-left: auto;
+      height: 34px;
+    }
+    .results-count { color: var(--fg-muted); font-size: 0.875rem; font-weight: 500; }
+    .clear-filters { color: var(--error); font-size: 0.875rem; cursor: pointer; background: none; border: none; padding: 0; font-weight: 500; display: none; }
+    .clear-filters:hover { text-decoration: underline; }
+    .clear-filters.visible { display: inline-block; }
+
+    /* Main Content */
+    .main-content {
+      padding: 0 1.5rem 3rem 1.5rem;
+    }
+
+    /* Jobs Grid */
+    .jobs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+    .job-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      transition: all 0.15s ease;
+      cursor: pointer; /* Makes entire card feel clickable */
+    }
+    /* Cards highlight rather than lift — a page full of nudging cards is noisy. */
+    .job-card:hover {
+      border-color: var(--border-hover);
+      background: var(--bg-active);
+    }
+    .job-card.fit-high { border-left: 4px solid var(--success); }
+    .job-card.fit-medium { border-left: 4px solid var(--warning); }
+    .job-card.fit-low { border-left: 4px solid transparent; }
+
+    .job-header { display: flex; flex-direction: column; gap: 0.25rem; }
+    .job-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--fg);
+    }
+    .job-meta {
+      font-size: 0.875rem;
+      color: var(--fg-muted);
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .badges-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-top: 0.25rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+    .badge-portal { background: var(--bg-subtle); border: 1px solid var(--border); color: var(--fg-muted); }
+    /* Card rebuilt from job-states.json — the posting has aged out of the feed,
+       so fit/score/salary are unknown and deliberately not shown. */
+    .badge-archived { background: var(--bg-active); border: 1px dashed var(--border-hover); color: var(--fg-muted); }
+    /* Auto-closed after 14 days of silence. Deliberately muted amber rather than
+       the red of a real rejection — nobody actually said no. */
+    .badge-ignored { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning); }
+    .badge-fit-high { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .badge-fit-medium { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+    .badge-fit-low { background: var(--bg-subtle); color: var(--fg-muted); border: 1px solid var(--border); }
+    .badge-score { background: var(--bg-subtle); border: 1px solid var(--border); color: var(--fg-muted); }
+    .badge-new { background: var(--accent); color: var(--accent-fg); border: 1px solid var(--accent); }
+    .badge-date { color: var(--fg-muted); font-size: 0.75rem; margin-left: auto; font-weight: 400; text-transform: none; letter-spacing: normal; }
+
+    .salary { font-family: var(--font-mono); font-size: 0.875rem; font-weight: 500; color: var(--fg); }
+    .salary.muted { color: var(--fg-muted); font-style: italic; font-weight: 400; font-family: var(--font-sans); }
+
+    .chips-row { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.25rem; }
+    .chip {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      color: var(--fg-muted);
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+    }
+    .chip.matched { background: var(--bg-card); border-color: var(--border-hover); color: var(--fg); font-weight: 500; }
+    .chip.eu-evidence { background: var(--success-bg); border-color: var(--success-border); color: var(--success); font-weight: 500; }
+    .chip.lang-req { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning); font-weight: 500; }
+
+    /* Health section */
+    .health-section {
+      margin-top: 3rem;
+      border-top: 1px solid var(--border);
+      padding-top: 2rem;
+    }
+    .health-section summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--fg);
+      font-size: 1.1rem;
+      user-select: none;
+      display: inline-block;
+    }
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .health-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .health-card h3 {
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+      color: var(--fg-muted);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    .health-item {
+      display: flex;
+      flex-direction: column;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border-hover);
+    }
+    .health-item:last-child { border-bottom: none; }
+    .health-item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+    .health-query { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; }
+    .health-meta { font-size: 0.75rem; color: var(--fg-muted); display: flex; gap: 0.5rem; }
+    .health-status { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+    .status-ok { color: var(--success); }
+    .status-error { color: var(--error); }
+    .status-disabled { color: var(--fg-muted); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 1rem;
+      background: var(--bg-subtle);
+      border: 1px dashed var(--border-hover);
+      border-radius: var(--radius);
+      margin-top: 1rem;
+    }
+    .empty-state h2 { margin-bottom: 0.5rem; font-size: 1.25rem; }
+    .empty-state p { color: var(--fg-muted); margin-bottom: 1rem; max-width: 500px; margin-inline: auto; }
+    .empty-state code {
+      background: var(--bg-card);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      border: 1px solid var(--border);
+      display: inline-block;
+    }
+
+    /* Spinner */
+    .spinner {
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+    }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    @media (max-width: 900px) {
+      .header-layout { flex-direction: column; }
+      .api-panels { width: 100%; }
+      .panel { flex: 1 1 100%; max-width: none; }
+    }
+    @media (max-width: 720px) {
+      .toolbar { flex-direction: column; align-items: stretch; gap: 1rem; }
+      input[type="text"] { width: 100%; }
+      .checkboxes { flex-wrap: wrap; height: auto; }
+      .toolbar-actions { margin-left: 0; justify-content: space-between; }
+    }
+  
+    /* Context Menu */
+    .context-menu {
+      position: fixed;
+      z-index: 9999;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 0.25rem 0;
+      min-width: 180px;
+      font-size: 0.875rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .context-menu-item {
+      padding: 0.5rem 1rem 0.5rem 0.75rem;
+      cursor: pointer;
+      color: var(--fg);
+      border: none;
+      background: none;
+      text-align: left;
+      font-family: inherit;
+      font-size: inherit;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      transition: background-color 0.12s ease, color 0.12s ease;
+    }
+    /* Each item carries a small colour dot rather than coloured label text.
+       Colour-coding the whole row turns the menu into a rainbow; a dot keeps it
+       scannable and calm, and the hue only floods in on hover. */
+    .context-menu-item::before {
+      content: '';
+      flex: 0 0 auto;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--ctx-accent, var(--fg-muted));
+    }
+    .context-menu-item:hover, .context-menu-item:focus {
+      background: var(--ctx-tint, var(--bg-active));
+      color: var(--ctx-accent, var(--fg));
+      outline: none;
+    }
+    .context-menu-item.ctx-neutral { --ctx-accent: var(--accent); --ctx-tint: var(--bg-active); }
+    .context-menu-item.ctx-applied { --ctx-accent: var(--success); --ctx-tint: var(--success-bg); }
+    .context-menu-item.ctx-interview { --ctx-accent: var(--warning); --ctx-tint: var(--warning-bg); }
+    .context-menu-item.ctx-rejected { --ctx-accent: var(--error); --ctx-tint: var(--error-bg); }
+    .context-menu-item.ctx-danger { --ctx-accent: var(--error); --ctx-tint: var(--error-bg); }
+    .context-menu-item.ctx-danger:hover { font-weight: 600; }
+    .context-menu-separator {
+      height: 1px;
+      background: var(--border);
+      margin: 0.25rem 0;
+    }
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--error);
+      color: #ffffff;
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 1rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+      z-index: 10000;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      animation: slideUp 0.2s ease-out;
+    }
+    .toast button {
+      background: #ffffff;
+      border: none;
+      color: var(--error);
+      padding: 0.375rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: opacity 0.2s;
+    }
+    .toast button:hover {
+      opacity: 0.9;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .job-card.is-applied {
+      background-color: var(--success-bg);
+      border-color: var(--success-border);
+    }
+    .badge-applied {
+      background-color: var(--success);
+      color: var(--accent-fg);
+      border: 1px solid var(--success);
+    }
+    .job-card.is-interview {
+      background-color: var(--warning-bg);
+      border-color: var(--warning-border);
+    }
+    .badge-interview {
+      background-color: var(--warning);
+      color: var(--accent-fg);
+      border: 1px solid var(--warning);
+    }
+    .job-card.is-rejected {
+      background-color: var(--error-bg);
+      border-color: var(--error-border);
+    }
+    .badge-rejected {
+      background-color: var(--error);
+      color: var(--accent-fg);
+      border: 1px solid var(--error);
+    }
+</style>
+</head>
+<body>
+  <div id="app" class="container">
+    <!-- Rendered content injected here -->
+  </div>
+
+  <script src="./data/jobs.js"></script>
+<script src="./smart-filter.js"></script>
+  <script>
+    (function() {
+      const app = document.getElementById('app');
+      const isHttp = location.protocol === 'http:' || location.protocol === 'https:';
+
+      // Defensive initialization
+      if (typeof window.JOBS === 'undefined') {
+        app.innerHTML = `
+          <div class="main-content" style="padding-top: 2rem;">
+            <div class="empty-state" style="border-color: var(--error);">
+              <h2 style="color: var(--error)">Data Not Found</h2>
+              <p>The file <code>dashboard/data/jobs.js</code> is missing or empty.</p>
+              <p>Please run the scraper to generate it:</p>
+              <code>bun run dashboard/scrape-daily.ts</code>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // XSS Protection Helper
+      const escapeHtml = (unsafe) => {
+        if (unsafe == null) return '';
+        return String(unsafe)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      };
+
+      // Tagged template for safe HTML construction
+      const html = (strings, ...values) => {
+        return strings.reduce((acc, str, i) => {
+          let val = values[i] !== undefined ? values[i] : '';
+          // Must test for the marker key, not truthiness
+          if (val && typeof val === 'object' && '__safeHtml' in val) {
+            val = val.__safeHtml;
+          } else if (Array.isArray(val)) {
+            val = val.map(v => (v && typeof v === 'object' && '__safeHtml' in v) ? v.__safeHtml : escapeHtml(v)).join('');
+          } else {
+            val = escapeHtml(val);
+          }
+          return acc + str + val;
+        }, '');
+      };
+      const safe = (str) => ({ __safeHtml: str });
+
+      // URL Canonicalization Helper
+      const canonUrl = (u) => {
+        if (!u) return '';
+        let c = u.toLowerCase();
+        const qIdx = c.indexOf('?');
+        if (qIdx !== -1) c = c.slice(0, qIdx);
+        if (c.endsWith('/')) c = c.slice(0, -1);
+        return c;
+      };
+
+      /**
+       * Portal-independent identity for a posting — must stay byte-identical to
+       * jobIdentity() in job-identity.ts, which the scraper and server use.
+       *
+       * A URL is not a stable identifier for a vacancy: it is listed on several
+       * boards under different links, and the link that survives dedup changes
+       * between runs. Keying saved state on company+title instead is what makes
+       * "delete" stick.
+       */
+      const GENDER_MARKER = /\((?:[mwfdkxh][\/|\s]*){2,}\)/gi;
+      const normIdentityPart = (s) => String(s == null ? '' : s)
+        .toLowerCase()
+        .replace(GENDER_MARKER, ' ')
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const jobIdentity = (company, title) => {
+        const c = normIdentityPart(company);
+        const t = normIdentityPart(title);
+        return (c && t) ? (c + '|' + t) : '';
+      };
+
+      // Relative Time Helper
+      const getRelativeTime = (isoString) => {
+        if (!isoString) return '';
+        try {
+          const date = new Date(isoString);
+          if (isNaN(date.getTime())) return '';
+          
+          const diff = Date.now() - date.getTime();
+          const seconds = Math.floor(diff / 1000);
+          const minutes = Math.floor(seconds / 60);
+          const hours = Math.floor(minutes / 60);
+          const days = Math.floor(hours / 24);
+
+          if (days > 1) return days + 'd ago';
+          if (days === 1) return 'yesterday';
+          if (hours > 0) return hours + 'h ago';
+          if (minutes > 0) return minutes + 'm ago';
+          return 'just now';
+        } catch(e) {
+          return '';
+        }
+      };
+
+      const formatBytes = (bytes) => {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+      };
+
+      // State
+      // Mutable on purpose: a finished scrape rewrites data/jobs.json, and the
+      // dashboard swaps these in place (see refreshJobsData) so the page shows
+      // the new results without a full reload.
+      let data = window.JOBS;
+      let jobs = data.jobs || [];
+      let counts = data.counts || { total: 0, new: 0, high: 0, medium: 0, pl: 0, eu: 0, applied: 0 };
+      let profile = data.profile || {};
+      let health = data.health || [];
+      
+      let jobStates = {};
+
+      /**
+       * Saved state indexed by vacancy identity, rebuilt whenever jobStates
+       * changes. Entries are filed under a URL, but a vacancy outlives its URL,
+       * so this is the index that actually makes "deleted stays deleted" work.
+       */
+      let jobStatesByIdentity = {};
+      const reindexJobStates = () => {
+        jobStatesByIdentity = {};
+        for (const entry of Object.values(jobStates)) {
+          const id = entry && (entry.identity || jobIdentity(entry.company, entry.title));
+          if (!id) continue;
+          // A vacancy can have several entries (one per board it was seen on).
+          // Prefer the one carrying a stage, so a bare note never masks a delete.
+          const cur = jobStatesByIdentity[id];
+          if (!cur || (!cur.state && entry.state)) jobStatesByIdentity[id] = entry;
+        }
+      };
+
+      /**
+       * The single place that answers "what has the user done with this job?".
+       * URL first (exact match wins), then identity (same vacancy, different
+       * link). Everything that reads state must go through here.
+       */
+      const stateFor = (job) => {
+        if (!job) return null;
+        const byUrl = jobStates[canonUrl(job.url)];
+        if (byUrl) return byUrl;
+        const id = job.identity || jobIdentity(job.company, job.title);
+        return (id && jobStatesByIdentity[id]) || null;
+      };
+      const stageOf = (job) => {
+        const s = stateFor(job);
+        return s && s.state ? s.state : null;
+      };
+
+      // Language requirements. scrape-daily.ts tags each job with the non-English
+      // languages it requires (job.languages / job.languageReqs). The "Language
+      // req." menu hides jobs per language; until you change it, the languages
+      // your profile does not list at all (profile.languages in config.json) are
+      // hidden. filters.hideLangs: null = that default, an array = your choice.
+      const LANG_LABELS = {
+        german: 'German', dutch: 'Dutch', french: 'French', polish: 'Polish', spanish: 'Spanish',
+        italian: 'Italian', swedish: 'Swedish', norwegian: 'Norwegian', danish: 'Danish',
+        finnish: 'Finnish', czech: 'Czech', portuguese: 'Portuguese', albanian: 'Albanian'
+      };
+      const langLabel = (l) => LANG_LABELS[l] || (l.charAt(0).toUpperCase() + l.slice(1));
+      const defaultHiddenLangs = () => {
+        const spoken = Object.keys((data.profile && data.profile.languages) || {}).map(s => s.toLowerCase());
+        return Object.keys(LANG_LABELS).filter(l => !spoken.includes(l));
+      };
+
+      const defaultFilters = {
+        text: '',
+        fit: 'all',
+        portal: 'all',
+        newOnly: false,
+        hideLangs: null,
+        remoteOnly: false,
+        sort: 'score'
+      };
+      
+      let filters = { ...defaultFilters };
+      let activeTab = 'PL';
+      let euDismissed = false;
+
+      try {
+        const savedFilters = localStorage.getItem('jobradar.filters');
+        if (savedFilters) {
+          filters = { ...filters, ...JSON.parse(savedFilters) };
+          delete filters.hideApplied;
+          delete filters.showDeleted;
+          // "Hide Polish-req" was a single checkbox before the language menu.
+          if (filters.hidePolish && !Array.isArray(filters.hideLangs)) {
+            filters.hideLangs = [...defaultHiddenLangs(), 'polish'];
+          }
+          delete filters.hidePolish;
+        }
+        const savedTab = localStorage.getItem('jobradar.tab');
+        if (savedTab) activeTab = savedTab;
+        euDismissed = localStorage.getItem('jobradar.eudismissed') === 'true';
+
+        // After a scrape, lead with what was just pulled. Only fires once per
+        // payload (keyed on generatedAt), so it never fights a tab you pick
+        // manually while browsing the same data set.
+        const stamp = String(data.generatedAt || '');
+        const lastScope = String(data.lastScope || '').toUpperCase();
+        if (stamp && lastScope && lastScope !== 'ALL'
+            && localStorage.getItem('jobradar.seenstamp') !== stamp) {
+          activeTab = lastScope;
+          localStorage.setItem('jobradar.seenstamp', stamp);
+          localStorage.setItem('jobradar.tab', activeTab);
+        }
+      } catch (e) {
+        console.warn("Failed to load state from localStorage", e);
+      }
+
+      const saveFilters = () => {
+        try {
+          localStorage.setItem('jobradar.filters', JSON.stringify(filters));
+        } catch (e) {}
+      };
+      const saveTab = () => {
+        try {
+          localStorage.setItem('jobradar.tab', activeTab);
+        } catch (e) {}
+      };
+      const saveEuDismissed = () => {
+        try {
+          localStorage.setItem('jobradar.eudismissed', 'true');
+        } catch (e) {}
+      };
+
+      const showToast = (msg, undoAction = null) => {
+        const existing = document.getElementById('jobradar-toast');
+        if (existing) existing.remove();
+        
+        const toast = document.createElement('div');
+        toast.id = 'jobradar-toast';
+        toast.className = 'toast';
+        
+        const span = document.createElement('span');
+        span.textContent = msg;
+        toast.appendChild(span);
+        
+        if (undoAction) {
+          const btn = document.createElement('button');
+          btn.textContent = 'Undo';
+          btn.onclick = () => { undoAction(); toast.remove(); };
+          toast.appendChild(btn);
+        }
+        
+        document.body.appendChild(toast);
+        setTimeout(() => { if (document.body.contains(toast)) toast.remove(); }, 6000);
+      };
+
+      const setJobState = async (job, state, note) => {
+        const cUrl = canonUrl(job.url);
+        const oldStateObj = stateFor(job);
+        // Full copy of every entry this call may touch, so a failed save can be
+        // rolled back exactly rather than approximately.
+        const snapshot = JSON.parse(JSON.stringify(jobStates));
+        
+        const payload = { url: job.url, title: job.title, company: job.company };
+        const newStateObj = oldStateObj ? { ...oldStateObj } : { title: job.title, company: job.company };
+        
+        if (state !== undefined) {
+          payload.state = state;
+          if (state === null) {
+            delete newStateObj.state;
+          } else {
+            newStateObj.state = state;
+            newStateObj.at = new Date().toISOString();
+          }
+        }
+        
+        if (note !== undefined) {
+          payload.note = note;
+          if (note === '') {
+            delete newStateObj.note;
+          } else {
+            newStateObj.note = note;
+            newStateObj.noteAt = new Date().toISOString();
+          }
+        }
+
+        // Optimistic UI. The change is applied to every entry this vacancy has
+        // accumulated under other boards' URLs, not just the card that was
+        // clicked — otherwise deleting one copy leaves its twin on screen until
+        // the next reload.
+        const identity = job.identity || jobIdentity(job.company, job.title);
+        newStateObj.identity = identity || undefined;
+        const affected = [cUrl, ...Object.keys(jobStates).filter(k => {
+          const e = jobStates[k];
+          return k !== cUrl && identity && e &&
+            (e.identity || jobIdentity(e.company, e.title)) === identity;
+        })];
+        if (!newStateObj.state && !newStateObj.note) {
+          for (const k of affected) delete jobStates[k];
+        } else {
+          jobStates[cUrl] = newStateObj;
+          for (const k of affected) {
+            if (k !== cUrl) jobStates[k] = { ...jobStates[k], ...newStateObj };
+          }
+        }
+        reindexJobStates();
+
+        updateJobsList();
+
+        if (isHttp) {
+          try {
+            const res = await fetch('/api/job-states', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error('API failed');
+          } catch (e) {
+            for (const k of affected) delete jobStates[k];
+            for (const [k, v] of Object.entries(snapshot)) jobStates[k] = v;
+            reindexJobStates();
+            updateJobsList();
+            showToast('Error saving state');
+          }
+        } else {
+          try {
+            localStorage.setItem('jobradar.jobStates', JSON.stringify(jobStates));
+          } catch (e) {
+            showToast('Error saving to local storage');
+          }
+        }
+      };
+
+      const loadJobStates = async () => {
+        if (isHttp) {
+          try {
+            const res = await fetch('/api/job-states');
+            if (res.ok) jobStates = await res.json();
+          } catch(e) {}
+        } else {
+          try {
+            const s = localStorage.getItem('jobradar.jobStates');
+            if (s) jobStates = JSON.parse(s);
+          } catch(e) {}
+        }
+        reindexJobStates();
+      };
+
+      // Gather distinct portals
+      let portals = Array.from(new Set(jobs.map(j => j.portal).filter(Boolean))).sort();
+
+      // Staleness check
+      let isStale = false;
+      let generatedAtDate = null;
+      const recomputeDerived = () => {
+        portals = Array.from(new Set(jobs.map(j => j.portal).filter(Boolean))).sort();
+        isStale = false;
+        generatedAtDate = null;
+        if (data.generatedAt) {
+          generatedAtDate = new Date(data.generatedAt);
+          if (isNaN(generatedAtDate.getTime())) {
+            generatedAtDate = null;
+          } else {
+            isStale = (Date.now() - generatedAtDate.getTime()) > 36 * 60 * 60 * 1000;
+          }
+        }
+      };
+      recomputeDerived();
+
+      /**
+       * Swap in the snapshot a finished scrape just wrote and re-render.
+       *
+       * The initial payload arrives as a <script src="data/jobs.js"> global,
+       * which cannot be re-evaluated without reloading the page, so the refresh
+       * path reads the identical payload from data/jobs.json instead. The
+       * filter/tab/scroll state lives in this closure and is deliberately left
+       * untouched — the user keeps their place, only the data underneath moves.
+       */
+      const refreshJobsData = async () => {
+        try {
+          const res = await fetch('./data/jobs.json?t=' + Date.now(), { cache: 'no-store' });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const fresh = await res.json();
+          if (!fresh || !Array.isArray(fresh.jobs)) throw new Error('malformed jobs.json');
+
+          data = fresh;
+          window.JOBS = fresh;
+          jobs = fresh.jobs;
+          counts = fresh.counts || { total: 0, new: 0, high: 0, medium: 0, pl: 0, eu: 0, applied: 0 };
+          profile = fresh.profile || {};
+          health = fresh.health || [];
+          recomputeDerived();
+
+          // States are swept server-side against the new snapshot, so re-read
+          // them rather than trusting the copy taken at page load.
+          await loadJobStates();
+
+          const y = window.scrollY;
+          initUI();
+          window.scrollTo(0, y);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      };
+
+      // API State
+      let scrapeState = { running: false, log: '', startedAt: null, exitCode: null, error: null, progress: null, progressDismissed: false };
+
+
+      // Which slice of the configured sources a manual scrape should run.
+      // Persisted like the other UI preferences so it survives a reload.
+      let scrapeScope = 'PL';
+      try {
+        const savedScope = localStorage.getItem('jobradar.scrapescope');
+        if (savedScope) scrapeScope = savedScope;
+      } catch (e) {}
+      const saveScrapeScope = () => {
+        try { localStorage.setItem('jobradar.scrapescope', scrapeScope); } catch (e) {}
+      };
+      let scrapePollTimer = null;
+
+      // Render Functions
+      const renderHeader = () => {
+        const localTime = generatedAtDate ? generatedAtDate.toLocaleString() : 'Unknown';
+        const relTime = generatedAtDate ? getRelativeTime(data.generatedAt) : 'Unknown';
+        const jobage = data.jobageDays != null ? data.jobageDays : '?';
+        const titleText = (profile.title || 'Professional') + ' | ' + (profile.homeCity || 'Location');
+        
+        let bannerHtml = '';
+        if (isStale) {
+          bannerHtml = html`<div class="banner warning">Data is over 36 hours old. Daily 09:00 scrape has not run recently.</div>`;
+        }
+
+        let apiPanelsHtml = '';
+        if (isHttp) {
+          apiPanelsHtml = html`
+            <div class="api-panels">
+              <div class="panel" id="cv-panel">
+                ${safe(renderCVContent())}
+              </div>
+              <div class="panel" id="scrape-panel">
+                ${safe(renderScrapeContent())}
+              </div>
+            </div>
+          `;
+        } else {
+          apiPanelsHtml = html`
+            <div class="api-panels">
+              <div class="panel" style="background: var(--bg-subtle);">
+                <div class="panel-title" style="color: var(--fg-muted);">API Features Disabled</div>
+                <div style="font-size: 0.875rem; color: var(--fg-muted);">
+                  Viewing via file:// protocol. Run <code>bun run dashboard/serve.ts</code> to enable CV upload and manual scraping.
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        return html`
+          <div class="header-layout">
+            <div class="header-main">
+              <h1>Job Radar</h1>
+              <div class="subtitle">
+                ${titleText}<br>
+                Last updated: ${relTime} (${localTime}) — showing posts up to ${jobage} day(s) old
+              </div>
+              ${safe(bannerHtml)}
+            </div>
+            ${safe(apiPanelsHtml)}
+          </div>
+        `;
+      };
+
+      const renderCVContent = (msg = null, msgType = '') => {
+        const cv = data.cv;
+        let cvInfoHtml = cv 
+          ? html`
+            <div class="cv-info">
+              <strong>${cv.originalName}</strong>
+              <div class="meta">${formatBytes(cv.sizeBytes)} • Uploaded ${getRelativeTime(cv.uploadedAt)}</div>
+            </div>
+          ` 
+          : html`<div class="cv-info" style="color: var(--fg-muted);">No CV on file</div>`;
+
+        let msgHtml = msg ? html`<div class="cv-msg ${msgType}">${msg}</div>` : '';
+
+        return html`
+          <div class="panel-title">Your CV</div>
+          <div class="cv-dropzone" id="cv-dropzone">
+            ${safe(cvInfoHtml)}
+            <input type="file" id="cv-upload-input" class="cv-file-input" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.odt">
+            <label class="cv-upload-btn" for="cv-upload-input" title="Choose a file, or drop one anywhere in this box">Upload CV</label>
+            ${safe(msgHtml)}
+          </div>
+          <div class="cv-disclaimer">Stored for reference only - it does not change your search queries. Edit dashboard/config.json to change what is searched.</div>
+        `;
+      };
+
+      /**
+       * Live scrape progress bar.
+       *
+       * Shared by the Scraper panel and Smart Search so a Smart Search reports
+       * exactly like "Scrape Now" — both drive the same server-side job, so
+       * showing it two different ways (or not at all) was just confusing.
+       * Returns '' when there is nothing to show.
+       */
+      const renderScrapeProgress = () => {
+        const p = scrapeState.progress;
+        if (!scrapeState.running && !p) return '';
+        // Hidden once a successful run has been on screen long enough to read.
+        if (!scrapeState.running && scrapeState.progressDismissed) return '';
+
+        const failed = !scrapeState.running && (scrapeState.exitCode !== null && scrapeState.exitCode !== 0 || scrapeState.error);
+        const finished = !scrapeState.running && scrapeState.exitCode === 0;
+        // total === 0 means the scraper has not announced its denominator yet.
+        const known = !!p && p.total > 0;
+        const pct = known ? Math.max(0, Math.min(100, p.percent)) : 0;
+        const fillClass = 'scrape-progress-fill'
+          + (finished ? ' done' : '')
+          + (failed ? ' failed' : '')
+          + (!known && scrapeState.running ? ' indeterminate' : '');
+        const pctText = known ? pct + '%' : '—';
+        const stepText = known ? ' (' + p.done + '/' + p.total + ')' : '';
+        const label = (p && p.label) ? p.label : (scrapeState.running ? 'Starting…' : '');
+
+        return html`
+          <div class="scrape-progress" role="progressbar"
+               aria-valuemin="0" aria-valuemax="100"
+               ${known ? safe('aria-valuenow="' + pct + '"') : ''}
+               aria-label="Scrape progress">
+            <div class="scrape-progress-head">
+              <span class="scrape-progress-label">${label}${stepText}</span>
+              <span class="scrape-progress-pct">${pctText}</span>
+            </div>
+            <div class="scrape-progress-track">
+              <div class="${fillClass}" style="width: ${known ? pct : 0}%"></div>
+            </div>
+          </div>
+        `;
+      };
+
+      const renderScrapeContent = () => {
+        // The Scraper and Smart Search share one panel slot: they drive the same
+        // backend job and only one can run at a time, so showing both side by
+        // side invited starting two scrapes at once. Smart Search takes the
+        // panel over completely while it is open.
+        if (smartState.open) return renderSmartContent();
+
+        const defaultJobage = data.jobageDays || 7;
+        const p = scrapeState.progress;
+
+        let statusHtml = '';
+        if (scrapeState.running) {
+          const elapsed = scrapeState.startedAt ? Math.floor((Date.now() - new Date(scrapeState.startedAt).getTime()) / 1000) : 0;
+          statusHtml = html`<div class="scrape-status"><span class="spinner"></span> Running... ${elapsed}s</div>`;
+        } else if (scrapeState.exitCode === 0) {
+          statusHtml = html`
+            <div class="scrape-status" style="color: var(--success);">Done!</div>
+            <button class="btn btn-primary" style="margin-top:0.5rem; width:100%;" onclick="location.reload()">Reload Page</button>
+          `;
+        } else if (scrapeState.exitCode !== null || scrapeState.error) {
+          statusHtml = html`<div class="scrape-status" style="color: var(--error);">Failed: ${scrapeState.error || 'Exit code ' + scrapeState.exitCode}</div>`;
+        }
+
+        // Progress bar: shown while running and kept on screen afterwards so the
+        // final 100% / failure point stays visible instead of vanishing.
+        const progressHtml = renderScrapeProgress();
+
+
+        // The raw scraper log is deliberately NOT rendered. It was noisy, and the
+        // bar + percentage already answer the only question being asked ("how far
+        // along is it?"). Failures still surface via statusHtml above.
+
+        return html`
+          <div class="panel-title smart-head">
+            <span>Scraper</span>
+            <button class="btn btn-mini" id="smart-toggle" title="Switch to keyword search">Smart Search</button>
+          </div>
+
+          <div class="scrape-form">
+            <label for="scrape-scope">Search in:</label>
+            <select id="scrape-scope" ${scrapeState.running ? safe('disabled') : ''}>
+              <option value="PL" ${scrapeScope === 'PL' ? safe('selected') : ''}>Poland</option>
+              <option value="DE" ${scrapeScope === 'DE' ? safe('selected') : ''}>Germany</option>
+              <option value="NL" ${scrapeScope === 'NL' ? safe('selected') : ''}>Netherlands</option>
+              <option value="EU" ${scrapeScope === 'EU' ? safe('selected') : ''}>EU remote</option>
+              <option value="ALL" ${scrapeScope === 'ALL' ? safe('selected') : ''}>Everywhere</option>
+            </select>
+          </div>
+          <div class="scrape-form">
+            <label for="scrape-jobage">Max job age:</label>
+            <input type="number" id="scrape-jobage" value="${defaultJobage}" min="1" max="30"
+                   title="Only fetch postings published within the last N days"
+                   ${scrapeState.running ? safe('disabled') : ''}>
+            <span class="unit">days</span>
+          </div>
+          <div class="scrape-action-row">
+            <button class="btn btn-scrape" id="btn-scrape" ${scrapeState.running ? safe('disabled') : ''}>Scrape Now</button>
+            ${scrapeState.running ? safe(html`<button class="btn btn-mini" id="btn-scrape-cancel" title="Stop the running scrape">Cancel</button>`) : safe('')}
+          </div>
+
+          <div class="scrape-hint">Only fetch job posts published in the last <strong id="scrape-hint-days">${defaultJobage}</strong> day(s). Lower = fresher results, higher = wider net (1–30).</div>
+          ${safe(statusHtml)}
+          ${safe(progressHtml)}
+        `;
+      };
+
+      // ---------------------------------------------------------------------
+      // Smart Search panel.
+      //
+      // Ad-hoc keyword search with expansion preview. Deliberately separate
+      // from the Scraper panel: that one runs the CURATED queries in
+      // config.json, this one runs whatever is typed here. Neither writes to
+      // config.json, so the scheduled 09:00 run is unaffected either way.
+      // ---------------------------------------------------------------------
+
+      // term -> { expanding, terms:[{term,reason,source}], off:Set<string> }
+      const smartState = {
+        keywords: [],
+        expansions: {},
+        cv: null,
+        cvLoading: false,
+        useLlm: false,
+        llmAvailable: false,
+        error: null,
+        lastQueries: null,
+        open: false,
+        refocus: false,
+        // Max job age typed into Smart Search. Held in state because the panel
+        // re-renders via innerHTML on every keyword add/expansion, and a
+        // hardcoded value="7" reset whatever the user had entered.
+        jobage: 7,
+        // Panel folded to its header, e.g. after scrolling down to the jobs.
+        collapsed: false,
+        // CV-derived terms the user has dismissed. Kept separately from
+        // `keywords` because the CV list is regenerated server-side on every
+        // load — without this, a removed suggestion reappears on refresh.
+        cvHidden: [],
+        // Scope picked in this panel (null = follow the Scraper's scope). It
+        // decides which native-language titles (PL/DE/NL) a run includes.
+        scope: null,
+        // Most terms one search may run, read from GET /api/scrape (null until
+        // the server answers). Above it the run button is disabled up front;
+        // the server used to cut the list at 25 without saying so.
+        maxTerms: null,
+      };
+
+      // ---------------------------------------------------------------------
+      // Persistence.
+      //
+      // The keyword list used to live only in memory, so every refresh wiped it
+      // and the whole list had to be retyped. Expansions are stored alongside
+      // the keywords rather than re-fetched on load: they are deterministic for
+      // a given term, and this keeps a reload instant and works with the server
+      // down.
+      //
+      // Sets are not JSON-serialisable, so `off` is persisted as an array and
+      // rehydrated below.
+      // ---------------------------------------------------------------------
+      const SMART_STORE = 'jobradar.smart.v1';
+
+      const smartSave = () => {
+        try {
+          const expansions = {};
+          for (const [kw, ex] of Object.entries(smartState.expansions)) {
+            if (!ex || ex.expanding) continue; // don't persist in-flight state
+            expansions[kw] = {
+              terms: ex.terms || [],
+              off: Array.from(ex.off || []),
+              engine: ex.engine || 0,
+            };
+          }
+          localStorage.setItem(SMART_STORE, JSON.stringify({
+            keywords: smartState.keywords,
+            expansions,
+            useLlm: smartState.useLlm,
+            cvHidden: smartState.cvHidden,
+            open: smartState.open,
+            jobage: smartState.jobage,
+            scope: smartState.scope,
+          }));
+        } catch (e) {
+          // Private mode / quota. Non-fatal: the panel still works in-memory.
+          console.warn('smart search: could not save state', e);
+        }
+      };
+
+      const smartLoad = () => {
+        try {
+          const raw = localStorage.getItem(SMART_STORE);
+          if (!raw) return;
+          const s = JSON.parse(raw);
+          if (Array.isArray(s.keywords)) smartState.keywords = s.keywords;
+          if (Array.isArray(s.cvHidden)) smartState.cvHidden = s.cvHidden;
+          smartState.useLlm = !!s.useLlm;
+          smartState.open = !!s.open;
+          const age = Number(s.jobage);
+          if (Number.isInteger(age) && age >= 1 && age <= 30) smartState.jobage = age;
+          if (typeof s.scope === 'string' && s.scope in SCOPE_LANGS) smartState.scope = s.scope;
+          if (s.expansions && typeof s.expansions === 'object') {
+            for (const [kw, ex] of Object.entries(s.expansions)) {
+              smartState.expansions[kw] = {
+                expanding: false,
+                terms: Array.isArray(ex.terms) ? ex.terms : [],
+                off: new Set(Array.isArray(ex.off) ? ex.off : []),
+                engine: Number(ex.engine) || 0,
+              };
+            }
+          }
+        } catch (e) {
+          console.warn('smart search: could not restore state', e);
+        }
+      };
+
+
+
+      const SOURCE_LABEL = {
+        original: 'typed',
+        correction: 'fixed',
+        synonym: 'synonym',
+        abbreviation: 'abbrev',
+        contraction: 'short',
+        spelling: 'spelling',
+        role: 'title',
+        vendor: 'related',
+        llm: 'AI',
+      };
+      const sourceLabel = (t) =>
+        t.source === 'translation' && t.lang ? t.lang.toUpperCase() : (SOURCE_LABEL[t.source] || t.source);
+
+      // Must match EXPAND_ENGINE in keyword-expand.ts. Previews stored by an
+      // older engine are refreshed on load, keeping the user's deselections.
+      const EXPAND_ENGINE = 2;
+
+      // Native-language titles (source 'translation') are only searched when the
+      // run's scope covers their market. EU remote postings are in English.
+      const SCOPE_LANGS = { PL: ['pl'], DE: ['de'], NL: ['nl'], EU: [], ALL: ['pl', 'de', 'nl'] };
+      const smartScope = () => smartState.scope || scrapeScope;
+      const termInScope = (t) =>
+        t.source !== 'translation' || !t.lang || (SCOPE_LANGS[smartScope()] || []).includes(t.lang);
+
+      /** Every term that will actually be searched, minus user-deselected ones
+       *  and native-language titles outside the selected scope. */
+      const smartSelectedTerms = () => {
+        const out = [];
+        const seen = new Set();
+        for (const kw of smartState.keywords) {
+          const ex = smartState.expansions[kw];
+          const list = ex && ex.terms ? ex.terms.filter(termInScope).map(t => t.term) : [kw];
+          for (const t of list) {
+            if (ex && ex.off && ex.off.has(t)) continue;
+            if (seen.has(t)) continue;
+            seen.add(t);
+            out.push(t);
+          }
+        }
+        return out;
+      };
+
+      // Only ever called while smartState.open is true — renderScrapeContent
+      // hands the panel over. There is no collapsed variant any more: closing
+      // Smart Search returns the panel to the Scraper.
+      const renderSmartContent = () => {
+
+
+        const chips = smartState.keywords.map(kw => {
+          const ex = smartState.expansions[kw];
+          let sub = '';
+          let extraCount = 0;
+          if (ex && ex.expanding) {
+            sub = html`<div class="smart-sub muted">expanding…</div>`;
+          } else if (ex && ex.terms) {
+            const extras = ex.terms.filter(t => t.source !== 'original');
+            extraCount = extras.filter(t => !(ex.off && ex.off.has(t.term)) && termInScope(t)).length;
+            sub = html`<div class="smart-sub">${safe(extras.map((t, i) => {
+              const off = ex.off && ex.off.has(t.term);
+              const outOfScope = !termInScope(t);
+              // Per-chip delay produces a staggered reveal instead of the whole
+              // row appearing at once.
+              return html`<button class="smart-chip sub ${off ? 'off' : ''} ${outOfScope ? 'out-of-scope' : ''}"
+                style="--i:${i}"
+                data-kw="${kw}" data-term="${t.term}"
+                title="${t.reason}${outOfScope ? ' — not searched: outside the selected scope' : ''}">${t.term}<span class="smart-src">${sourceLabel(t)}</span></button>`;
+            }).join(''))}</div>`;
+          }
+          // Expansions are collapsed until the keyword is hovered/focused, so a
+          // dozen keywords stay readable. The badge keeps the hidden count
+          // visible while collapsed — they are still part of the query.
+          const badge = extraCount
+            ? html`<span class="smart-more" title="${extraCount} related term${extraCount === 1 ? '' : 's'} included">+${extraCount}</span>`
+            : '';
+          return html`
+            <div class="smart-group" tabindex="0">
+              <span class="smart-anchor">
+                <span class="smart-chip main">${kw}${safe(badge)}<button class="smart-x" data-remove="${kw}" title="Remove">×</button></span>
+                <div class="smart-reveal"><div class="smart-reveal-inner">${safe(sub)}</div></div>
+              </span>
+            </div>`;
+        }).join('');
+
+
+        let cvHtml = '';
+        if (smartState.cvLoading) {
+          cvHtml = html`<div class="smart-sub muted">reading CV…</div>`;
+        } else if (smartState.cv && smartState.cv.empty) {
+          cvHtml = html`<div class="smart-sub muted">No keywords could be read from the stored CV. If it is a scanned image or a .docx, upload a text-based PDF to enable this.</div>`;
+        } else if (smartState.cv && smartState.cv.keywords) {
+          const hidden = new Set(smartState.cvHidden);
+          const added = new Set(smartState.keywords.map(k => k.toLowerCase()));
+          const visible = smartState.cv.keywords.filter(k => !hidden.has(k.term));
+          if (!visible.length) {
+            cvHtml = html`<div class="smart-sub muted">All CV suggestions dismissed.</div>`;
+          } else {
+            cvHtml = html`<div class="smart-sub">${safe(visible.map(k => {
+              const isAdded = added.has(k.term.toLowerCase());
+              // The chip body adds the term; the × dismisses the suggestion.
+              return html`<span class="smart-chip cv ${isAdded ? 'added' : ''}" title="${k.reason}">
+                <button class="smart-chip-body" data-add="${k.term}" ${isAdded ? safe('disabled') : ''}>${k.term}<span class="smart-src">${k.score}</span></button>
+                <button class="smart-x" data-cv-remove="${k.term}" title="Dismiss this suggestion">×</button>
+              </span>`;
+            }).join(''))}</div>`;
+          }
+          if (hidden.size) {
+            cvHtml += html`<div class="smart-sub"><button class="btn btn-mini" id="smart-cv-restore">Restore ${hidden.size} dismissed</button></div>`;
+          }
+        }
+
+
+        const total = smartSelectedTerms().length;
+        const maxTerms = smartState.maxTerms;
+        const tooMany = maxTerms !== null && total > maxTerms;
+        // Only the RUN control is gated on a live scrape. Building the keyword
+        // list is local state and costs nothing, so disabling the input and Add
+        // button here meant a stuck scrape locked the panel outright.
+        const busy = scrapeState.running;
+
+        // The run button is rendered in ONE of two places, never both (a second
+        // copy would duplicate the id and break the listener). Once keywords
+        // exist it sits directly under the input, so it is reachable without
+        // scrolling past a long chip list.
+        const runLabel = busy
+          ? 'Searching…'
+          : tooMany
+            ? 'Too many terms: ' + total + ' (max ' + maxTerms + ')'
+            : (total ? 'Search ' + total + ' term' + (total === 1 ? '' : 's') : 'Add a keyword');
+        // Same id as the Scraper's Cancel: only one of the two views is ever in
+        // the panel, and bindScrapeCancel() wires whichever is present.
+        const cancelBtnHtml = busy
+          ? html`<button class="btn btn-mini" id="btn-scrape-cancel" title="Stop the running search">Cancel</button>`
+          : '';
+        const runBtn = html`
+          <div class="scrape-action-row">
+            <button class="btn btn-scrape" id="smart-run" ${busy || !total || tooMany ? safe('disabled') : ''}>${runLabel}</button>
+            ${safe(cancelBtnHtml)}
+          </div>
+          ${tooMany && !busy ? safe(html`<div class="smart-sub muted">One search runs at most ${maxTerms} terms. Hover a keyword and click related terms to switch them off, or remove a keyword.</div>`) : safe('')}`;
+        const runAtTop = smartState.keywords.length > 0;
+
+        // Mirrors the Scraper panel: the same live progress bar, so a Smart
+        // Search looks and behaves like "Scrape Now" instead of silently
+        // running with no feedback.
+        const progressHtml = renderScrapeProgress();
+
+        // Folded view (after scrolling down to the job list): header, keyword
+        // count and live progress only, so a running search stays visible.
+        if (smartState.collapsed) {
+          return html`
+            <div class="panel-title smart-head">
+              <span>Smart Search${total ? safe(html` <span class="smart-count">${total}</span>`) : safe('')}</span>
+              <span class="smart-head-actions">
+                <button class="btn btn-mini" id="smart-expand" title="Show the Smart Search panel">Expand</button>
+                ${safe(cancelBtnHtml)}
+              </span>
+            </div>
+            ${safe(progressHtml)}
+          `;
+        }
+        // Scope and job age are needed to interpret the run button, so they sit
+        // with it at the top rather than below a chip list that can run to
+        // several screens.
+        const optionsHtml = html`
+          <div class="smart-options">
+            <div class="scrape-form">
+              <label for="smart-scope">Search in:</label>
+              <select id="smart-scope" ${busy ? safe('disabled') : ''}>
+                <option value="PL" ${smartScope() === 'PL' ? safe('selected') : ''}>Poland</option>
+                <option value="DE" ${smartScope() === 'DE' ? safe('selected') : ''}>Germany</option>
+                <option value="NL" ${smartScope() === 'NL' ? safe('selected') : ''}>Netherlands</option>
+                <option value="EU" ${smartScope() === 'EU' ? safe('selected') : ''}>EU remote</option>
+                <option value="ALL" ${smartScope() === 'ALL' ? safe('selected') : ''}>Everywhere</option>
+              </select>
+            </div>
+            <div class="scrape-form">
+              <label for="smart-jobage">Max job age:</label>
+              <input type="number" id="smart-jobage" value="${smartState.jobage}" min="1" max="30" ${busy ? safe('disabled') : ''}>
+              <span class="unit">days</span>
+            </div>
+          </div>`;
+
+        return html`
+          <div class="panel-title smart-head">
+            <span>Smart Search${total ? safe(html` <span class="smart-count">${total}</span>`) : safe('')}</span>
+            <span class="smart-head-actions">
+              ${smartState.keywords.length ? safe(html`<button class="btn btn-mini" id="smart-clear" title="Remove all keywords">Clear</button>`) : safe('')}
+              <button class="btn btn-mini" id="smart-toggle" title="Back to the Scraper">Scraper</button>
+            </span>
+          </div>
+
+          <div class="scrape-form">
+            <input type="text" id="smart-input" placeholder="e.g. network architect" autocomplete="off">
+            <button class="btn btn-mini" id="smart-add">Add</button>
+          </div>
+
+          ${safe(optionsHtml)}
+          ${runAtTop ? safe(runBtn) : safe('')}
+          ${safe(progressHtml)}
+
+          ${smartState.keywords.length
+            ? safe(html`<div class="smart-groups">${safe(chips)}</div>`)
+            : safe(html`<div class="smart-sub muted">No keywords yet. Type one above, or pick from your CV below. Your list is saved and restored on refresh.</div>`)}
+
+
+
+          <label class="smart-check" title="${smartState.llmAvailable ? 'Ask an AI for extra title variants' : 'Set OPENAI_API_KEY or ANTHROPIC_API_KEY to enable'}">
+            <input type="checkbox" id="smart-llm" ${smartState.useLlm ? safe('checked') : ''} ${smartState.llmAvailable ? safe('') : safe('disabled')}>
+            Use AI suggestions ${smartState.llmAvailable ? safe('') : safe('<span class="muted">(no API key)</span>')}
+          </label>
+
+          <div class="smart-sec-title">From your CV</div>
+          ${safe(cvHtml)}
+
+          ${runAtTop ? safe('') : safe(runBtn)}
+
+
+          ${smartState.error ? safe(html`<div class="banner warning">${smartState.error}</div>`) : safe('')}
+          ${smartState.lastQueries ? safe(html`<div class="smart-sub muted">Searching: ${smartState.lastQueries.join(', ')}</div>`) : safe('')}
+        `;
+      };
+
+
+      const renderTabs = () => {
+        const pc = pipelineCounts();
+        const counted = countryCounts();
+
+        // One tab per country that actually has jobs, led by whatever was
+        // scraped most recently, then the rest by size. Countries with nothing
+        // in them are omitted entirely rather than sitting there showing 0.
+        // Every country sits behind ONE button. Poland leads the list as the
+        // primary market; the rest follow by most-recently-scraped then size.
+        // A native <select> was used here before, but its popup is drawn by the
+        // OS and ignores the page theme entirely — it rendered as a white/blue
+        // list on the dark UI. This is a themed menu instead.
+        const ordered = allCountryOptions(counted);
+        const current = ordered.includes(activeTab) ? activeTab : (ordered[0] || PINNED_COUNTRY);
+        const countryActive = ordered.includes(activeTab);
+
+        const countryTab = html`
+          <button class="tab tab-country ${countryActive ? 'active' : ''}"
+                  id="country-btn" aria-haspopup="menu" aria-expanded="false">
+            ${COUNTRY_LABELS[current] || current}
+            <span class="badge-count">${counted[current] || 0}</span>
+            <span class="tab-chevron" aria-hidden="true"></span>
+          </button>
+        `;
+
+        return html`
+          <div class="tabs">
+            ${safe(countryTab)}
+            <button class="tab ${activeTab === 'All' ? 'active' : ''}" data-tab="All">
+              All <span class="badge-count">${counted.__all || 0}</span>
+            </button>
+            <button class="tab ${activeTab === 'Applied' ? 'active' : ''}" data-tab="Applied">
+              Applied <span class="badge-count">${pc.applied}</span>
+            </button>
+            <button class="tab ${activeTab === 'Interview' ? 'active' : ''}" data-tab="Interview">
+              Interview <span class="badge-count">${pc.interview}</span>
+            </button>
+            <button class="tab ${activeTab === 'Rejected' ? 'active' : ''}" data-tab="Rejected">
+              Rejected <span class="badge-count">${pc.rejected}</span>
+            </button>
+          </div>
+        `;
+      };
+
+      const renderToolbar = () => {
+        const portalOptions = portals.map(p => html`<option value="${p}" ${filters.portal === p ? safe('selected') : ''}>${p}</option>`);
+        
+        const hasActiveFilters = filters.text || filters.fit !== 'all' || filters.portal !== 'all' || filters.newOnly || Array.isArray(filters.hideLangs) || filters.remoteOnly || filters.sort !== 'score';
+        
+        return html`
+          <div class="toolbar">
+            <div class="filter-group">
+              <span class="filter-label">Search</span>
+              <input type="text" id="filter-text" placeholder="Title, company, city, skill... (press /)" value="${filters.text}"
+                title='Words in any order · abbreviations (sr, dc, k8s) · typos fixed · "exact phrase" · -exclude'>
+            </div>
+            
+            <div class="filter-group">
+              <span class="filter-label">Fit Score</span>
+              <select id="filter-fit">
+                <option value="all" ${filters.fit === 'all' ? safe('selected') : ''}>All Fits</option>
+                <option value="high" ${filters.fit === 'high' ? safe('selected') : ''}>High Only</option>
+                <option value="medium" ${filters.fit === 'medium' ? safe('selected') : ''}>Medium Only</option>
+              </select>
+            </div>
+            
+            <div class="filter-group">
+              <span class="filter-label">Source</span>
+              <select id="filter-portal">
+                <option value="all" ${filters.portal === 'all' ? safe('selected') : ''}>All Portals</option>
+                ${safe(portalOptions.join(''))}
+              </select>
+            </div>
+            
+            <div class="filter-group">
+              <span class="filter-label">Sort By</span>
+              <select id="sort-by">
+                <option value="score" ${filters.sort === 'score' ? safe('selected') : ''}>Best Match</option>
+                <option value="date" ${filters.sort === 'date' ? safe('selected') : ''}>Newest First</option>
+                <option value="company" ${filters.sort === 'company' ? safe('selected') : ''}>Company A-Z</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <span class="filter-label">Language req.</span>
+              <button type="button" class="lang-btn" id="lang-btn" aria-haspopup="true" aria-expanded="false"
+                title="Hide jobs that require a language you do not work in">
+                <span class="lang-btn-text" id="lang-btn-text">${langButtonText()}</span>
+                <span class="tab-chevron" aria-hidden="true"></span>
+              </button>
+            </div>
+
+            <div class="checkboxes">
+              <label class="checkbox-label">
+                <input type="checkbox" id="filter-new" ${filters.newOnly ? safe('checked') : ''}> New only
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="filter-remote" ${filters.remoteOnly ? safe('checked') : ''}> Remote only
+              </label>
+            </div>
+
+            <div class="toolbar-actions">
+              <span style="font-size: 0.75rem; color: var(--fg-muted); margin-right: 0.5rem; user-select: none;">Right-click a card for actions</span>
+              <button class="clear-filters ${hasActiveFilters ? 'visible' : ''}" id="btn-clear-filters">Clear all filters</button>
+              <div class="results-count" id="results-count"></div>
+            </div>
+          </div>
+        `;
+      };
+
+      const COUNTRY_LABELS = { PL: 'Poland', DE: 'Germany', NL: 'Netherlands', EU: 'EU Remote' };
+      const COUNTRY_CODES = Object.keys(COUNTRY_LABELS);
+      /** Always-first tab. Poland is the primary market and should never move. */
+      const PINNED_COUNTRY = 'PL';
+
+      /** Coarse country for a job, tolerating payloads written before country tagging. */
+      const jobCountry = (j) => j.country || (j.region === 'PL' ? 'PL' : 'EU');
+
+      /**
+       * Job counts per country, excluding anything already in the pipeline
+       * (those live in the Applied/Interview/Rejected tabs). `__all` is the
+       * total across every country, for the All tab.
+       */
+      const countryCounts = () => {
+        const out = { __all: 0 };
+        for (const j of jobs) {
+          if (stageOf(j)) continue;
+          const c = jobCountry(j);
+          out[c] = (out[c] || 0) + 1;
+          out.__all++;
+        }
+        return out;
+      };
+
+      /**
+       * Country tab order: the scope from the most recent scrape leads, so the
+       * data you just pulled is what you see first. Remaining countries follow
+       * by descending count, with an alphabetical tie-break so the bar does not
+       * reshuffle between renders on equal counts.
+       */
+      /**
+       * Every country the dashboard knows about, Poland pinned first and the
+       * rest ordered by recency/size. Countries with zero jobs are deliberately
+       * INCLUDED — you must be able to switch to Germany to see that it is
+       * empty and then scrape it, rather than have it vanish from the UI.
+       */
+      const allCountryOptions = (counted) => {
+        const ranked = orderedCountryTabs(counted).filter(c => c !== PINNED_COUNTRY);
+        const rest = COUNTRY_CODES.filter(c => c !== PINNED_COUNTRY && !ranked.includes(c));
+        return [PINNED_COUNTRY, ...ranked, ...rest];
+      };
+
+      const orderedCountryTabs = (counted) => {
+        const present = Object.keys(counted).filter(k => k !== '__all' && counted[k] > 0);
+        const lead = String(data.lastScope || '').toUpperCase();
+        return present.sort((a, b) => {
+          if (a === lead && b !== lead) return -1;
+          if (b === lead && a !== lead) return 1;
+          return (counted[b] - counted[a]) || a.localeCompare(b);
+        });
+      };
+
+      let activeCountryMenu = null;
+      /** Closes the country menu. Returns true if one was actually open. */
+      const closeCountryMenu = () => {
+        if (!activeCountryMenu) return false;
+        activeCountryMenu.remove();
+        activeCountryMenu = null;
+        const b = document.getElementById('country-btn');
+        if (b) b.setAttribute('aria-expanded', 'false');
+        return true;
+      };
+      document.addEventListener('click', () => closeCountryMenu());
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCountryMenu(); });
+
+      /** Languages hidden right now: your choice, or the profile-based default. */
+      const hiddenLangs = () => new Set(Array.isArray(filters.hideLangs) ? filters.hideLangs : defaultHiddenLangs());
+      /** [language, jobs requiring it] across the whole job list, most frequent first. */
+      const langCounts = () => {
+        const c = {};
+        jobs.forEach(j => (j.languages || []).forEach(l => { c[l] = (c[l] || 0) + 1; }));
+        return Object.entries(c).sort((a, b) => b[1] - a[1]);
+      };
+      const langButtonText = () => {
+        const present = langCounts().map(([l]) => l);
+        if (!present.length) return 'None detected';
+        const hidden = present.filter(l => hiddenLangs().has(l));
+        if (!hidden.length) return 'Show all';
+        return 'Hide ' + (hidden.length <= 2 ? hidden.map(langLabel).join(', ') : langLabel(hidden[0]) + ' +' + (hidden.length - 1));
+      };
+      /** Jobs the last filter pass hid for their language alone (shown in the results line). */
+      let lastLangHidden = 0;
+      let activeLangMenu = null;
+      /** Closes the language menu. Returns true if one was actually open. */
+      const closeLangMenu = () => {
+        if (!activeLangMenu) return false;
+        activeLangMenu.remove();
+        activeLangMenu = null;
+        const b = document.getElementById('lang-btn');
+        if (b) b.setAttribute('aria-expanded', 'false');
+        return true;
+      };
+      document.addEventListener('click', () => closeLangMenu());
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLangMenu(); });
+      const setHiddenLangs = (list) => {
+        filters.hideLangs = list;
+        saveFilters();
+        const t = document.getElementById('lang-btn-text');
+        if (t) t.textContent = langButtonText();
+        updateJobsList();
+      };
+
+      const PIPELINE_TABS = { Applied: 'applied', Interview: 'interview', Rejected: 'rejected' };
+
+      /**
+       * The pipeline tabs are backed by job-states.json, NOT by the current
+       * scrape. jobs.json only contains postings from the last N days, so a job
+       * applied to three weeks ago drops out of the feed while its state entry
+       * lives on. Rendering the pipeline from `jobs` alone made those
+       * applications silently disappear after a scrape.
+       *
+       * We therefore union the feed with the persisted state DB, synthesising a
+       * minimal card from the title/company the server recorded at the time the
+       * stage was set.
+       */
+      const pipelineJobsFor = (stage) => {
+        const byUrl = new Map();
+        for (const j of jobs) {
+          if (stageOf(j) === stage) byUrl.set(canonUrl(j.url), j);
+        }
+        for (const [cUrl, st] of Object.entries(jobStates)) {
+          if (!st || st.state !== stage || byUrl.has(cUrl)) continue;
+          byUrl.set(cUrl, {
+            id: cUrl,
+            url: cUrl,
+            title: st.title || '(title not recorded)',
+            company: st.company || '—',
+            location: '—',
+            portal: (() => { try { return new URL(cUrl).hostname.replace(/^www\./, ''); } catch { return '—'; } })(),
+            region: 'PL',
+            salary: null,
+            date: null,
+            contractTypes: [],
+            workModes: [],
+            remote: false,
+            technologies: [],
+            score: 0,
+            fit: 'medium',
+            matched: [],
+            isNew: false,
+            archived: true, // no longer in the current scrape window
+          });
+        }
+        return [...byUrl.values()];
+      };
+
+      /** Counts for the pipeline tab badges, taken from the persisted DB. */
+      const pipelineCounts = () => {
+        const c = { applied: 0, interview: 0, rejected: 0 };
+        for (const st of Object.values(jobStates)) {
+          if (st && st.state && st.state in c) c[st.state]++;
+        }
+        return c;
+      };
+
+      /**
+       * The search box. SmartFilter (smart-filter.js) understands word order,
+       * accents, abbreviations, typos, role-family titles, "phrases" and
+       * -exclusions; compiled once per query, then tested against every job.
+       * The plain substring check is only a fallback if the script is missing.
+       */
+      let textMatcherCache = null;
+      const textMatcherFor = (text) => {
+        if (textMatcherCache && textMatcherCache.text === text && textMatcherCache.jobs === jobs) {
+          return textMatcherCache.matcher;
+        }
+        const matcher = window.SmartFilter
+          ? SmartFilter.compile(text, jobs)
+          : {
+              explain: [],
+              test: (j) => ((j.title || '') + ' ' + (j.company || '')).toLowerCase().includes(text.toLowerCase()),
+            };
+        textMatcherCache = { text, jobs, matcher };
+        return matcher;
+      };
+
+      // Abbreviations, spellings and role families for the search box. Optional:
+      // without it the box still handles accents, word order, typos and quotes.
+      if (window.SmartFilter) {
+        fetch('keyword-map.json')
+          .then((r) => (r.ok ? r.json() : null))
+          .then((map) => {
+            if (!map) return;
+            SmartFilter.setVocabulary(map);
+            textMatcherCache = null;
+            if (filters.text) updateJobsList();
+          })
+          .catch(() => { /* vocabulary is an enhancement, not a requirement */ });
+      }
+
+      const getFilteredJobs = () => {
+        const stage = PIPELINE_TABS[activeTab];
+        const source = stage ? pipelineJobsFor(stage) : jobs;
+        const text = filters.text ? textMatcherFor(filters.text) : null;
+
+        const hiddenLangSet = hiddenLangs();
+        let langHidden = 0;
+        let result = source.filter(j => {
+          const state = stageOf(j);
+
+          if (state === 'deleted') return false;
+
+          if (stage) {
+            if (state !== stage) return false;
+          } else {
+            if (state === 'applied' || state === 'interview' || state === 'rejected') return false;
+            
+            // Country tabs. 'All' and the pipeline tabs are not country codes.
+            if (COUNTRY_CODES.includes(activeTab) && jobCountry(j) !== activeTab) return false;
+          }
+
+          // Standard filtering
+          if (text && !text.test(j)) return false;
+          if (filters.fit !== 'all' && j.fit !== filters.fit) return false;
+          if (filters.portal !== 'all' && j.portal !== filters.portal) return false;
+          if (filters.newOnly && !j.isNew) return false;
+          
+          if (filters.remoteOnly) {
+            const isExplicitRemote = !!j.remote;
+            const modes = j.workModes || [];
+            const hasRemoteMode = modes.some(m => {
+              const mt = (m || '').toLowerCase();
+              return mt.includes('zdalna') || mt.includes('remote');
+            });
+            if (!isExplicitRemote && !hasRemoteMode) return false;
+          }
+
+          // Last, so the count below only covers jobs hidden by language alone.
+          if (hiddenLangSet.size && (j.languages || []).some(l => hiddenLangSet.has(l))) {
+            langHidden++;
+            return false;
+          }
+          
+          return true;
+        });
+
+        lastLangHidden = langHidden;
+        const effectiveSort = ((activeTab === 'Applied' || activeTab === 'Interview' || activeTab === 'Rejected') && filters.sort === 'score') ? 'appliedTime' : filters.sort;
+
+        result.sort((a, b) => {
+          if (effectiveSort === 'appliedTime') {
+            const sa = stateFor(a);
+            const sb = stateFor(b);
+            const ta = sa && sa.at ? new Date(sa.at).getTime() : 0;
+            const tb = sb && sb.at ? new Date(sb.at).getTime() : 0;
+            return tb - ta;
+          } else if (effectiveSort === 'score') {
+            return (b.score || 0) - (a.score || 0);
+          } else if (effectiveSort === 'date') {
+            const da = a.date ? new Date(a.date).getTime() : 0;
+            const db = b.date ? new Date(b.date).getTime() : 0;
+            return db - da;
+          } else if (effectiveSort === 'company') {
+            return (a.company || '').localeCompare(b.company || '');
+          }
+          return 0;
+        });
+
+        return result;
+      };
+
+      /**
+       * Every job currently on screen, keyed by canonical URL. Card event
+       * handlers must resolve through this rather than through `jobs`: the
+       * pipeline tabs also render entries reconstructed from job-states.json,
+       * which are absent from the feed. Looking them up in `jobs` returned
+       * undefined and silently dropped stage changes and note edits.
+       */
+      const renderedJobs = new Map();
+
+      const findJobByUrl = (url) => renderedJobs.get(canonUrl(url)) || null;
+
+      const renderJobsList = (filteredJobs) => {
+        renderedJobs.clear();
+        for (const j of filteredJobs) renderedJobs.set(canonUrl(j.url), j);
+        if (activeTab === 'EU' && !euDismissed) {
+          const explainer = html`
+            <div class="banner info" id="eu-explainer">
+              <div>
+                These are EU-wide roles filtered to ones that appear performable from Poland. Roughly 70-80% of European postings advertised as 'remote' still require local tax residence, because otherwise the employer must register for Polish payroll/ZUS and takes on permanent-establishment risk. Each result below matched an explicit EU-remote signal, shown on the card. Non-EU markets (UK, Switzerland, Norway, US) are excluded by design. Always confirm B2B-from-Poland is acceptable before investing time.
+              </div>
+              <button class="banner-close" id="btn-dismiss-eu" title="Dismiss">×</button>
+            </div>
+          `;
+          domJobsContainer.innerHTML = explainer; // Will append cards below
+        } else {
+          domJobsContainer.innerHTML = '';
+        }
+
+        if (filteredJobs.length === 0) {
+          let emptyText = "No jobs match your current filters.";
+          if (activeTab === 'EU') emptyText = "No EU-remote roles matched today. The filter is deliberately strict - see Portal Health below.";
+          // A country can now be selected before it has ever been scraped, so
+          // say how to populate it rather than just "no matches".
+          if (COUNTRY_CODES.includes(activeTab) && !countryCounts()[activeTab]) {
+            emptyText = "No " + (COUNTRY_LABELS[activeTab] || activeTab) + " jobs yet. Open the Scraper panel, set “Search in” to " + (COUNTRY_LABELS[activeTab] || activeTab) + ", and run a scrape.";
+          }
+          if (activeTab === 'Applied') emptyText = "Nothing marked as applied yet. Right-click a card and choose 'Mark as applied'.";
+          if (activeTab === 'Interview') emptyText = "No jobs in interview stage yet.";
+          if (activeTab === 'Rejected') emptyText = "No rejected jobs. Applications with no response for 14 days land here automatically, tagged IGNORED.";
+          domJobsContainer.innerHTML += html`<div class="empty-state"><p>${emptyText}</p></div>`;
+          return;
+        }
+
+        const cards = filteredJobs.map(job => {
+          const fitClass = job.fit === 'high' ? 'fit-high' : (job.fit === 'medium' ? 'fit-medium' : 'fit-low');
+          const fitBadgeClass = job.fit === 'high' ? 'badge-fit-high' : (job.fit === 'medium' ? 'badge-fit-medium' : 'badge-fit-low');
+          
+          const url = job.url || '#';
+          const title = job.title || 'Unknown Title';
+          const company = job.company || 'Unknown Company';
+          const location = job.location || 'Unknown Location';
+          
+          const salaryHtml = job.salary 
+            ? html`<div class="salary">${job.salary}</div>` 
+            : html`<div class="salary muted">salary not disclosed</div>`;
+
+          let matchedKeywordsHtml = '';
+          const matched = job.matched || [];
+          if (matched.length > 0) {
+            const visible = matched.slice(0, 6);
+            const extra = matched.length - 6;
+            const chips = visible.map(k => html`<span class="chip matched">${k}</span>`);
+            if (extra > 0) chips.push(html`<span class="chip matched">+${extra}</span>`);
+            matchedKeywordsHtml = chips.join('');
+          }
+
+          let otherChipsHtml = '';
+          const modesAndContracts = [...(job.workModes || []), ...(job.contractTypes || [])].filter(Boolean);
+          if (modesAndContracts.length > 0) {
+            otherChipsHtml = modesAndContracts.map(m => html`<span class="chip">${m}</span>`).join('');
+          }
+
+          let euExtrasHtml = '';
+          if (job.region === 'EU') {
+            if (job.euEvidence) {
+              euExtrasHtml += html`<span class="chip eu-evidence">EU-remote: ${job.euEvidence}</span>`;
+            }
+          }
+
+          // One chip per required language; the tooltip quotes the line that says so.
+          const langReqs = Array.isArray(job.languageReqs) ? job.languageReqs
+            : (job.languages || []).map(l => ({ lang: l, how: 'required', evidence: '' }));
+          const langChipsHtml = langReqs.map(r => html`<span class="chip lang-req" title="${r.evidence || ''}">${r.how === 'posting' ? 'Written in ' + langLabel(r.lang) : langLabel(r.lang) + ' required'}</span>`).join('');
+
+          
+          const cUrl = canonUrl(url);
+          const stateInfo = stateFor(job);
+          const jobState = stateInfo ? stateInfo.state : null;
+          const jobNote = stateInfo ? stateInfo.note : '';
+          
+          let cardClasses = 'job-card ' + fitClass;
+          let extraBadgesHtml = '';
+          if (jobState === 'applied') {
+            cardClasses += ' is-applied';
+            extraBadgesHtml = html`<span class="badge badge-applied">APPLIED ${getRelativeTime(stateInfo.at)}</span>`;
+          } else if (jobState === 'interview') {
+            cardClasses += ' is-interview';
+            extraBadgesHtml = html`<span class="badge badge-interview">INTERVIEW ${getRelativeTime(stateInfo.at)}</span>`;
+          } else if (jobState === 'rejected') {
+            cardClasses += ' is-rejected';
+            if (stateInfo && stateInfo.autoRejected) {
+              // Auto-closed by the 14-day no-response sweep, not an actual
+              // rejection — label it differently so the distinction is obvious.
+              const appliedAgo = stateInfo.appliedAt ? getRelativeTime(stateInfo.appliedAt) : null;
+              extraBadgesHtml = html`<span class="badge badge-ignored" title="No response within 14 days of applying, so this was closed automatically. Move it back to Applied to restart the clock.">IGNORED${appliedAgo ? ' — applied ' + appliedAgo : ''}</span>`;
+            } else {
+              extraBadgesHtml = html`<span class="badge badge-rejected">REJECTED ${getRelativeTime(stateInfo.at)}</span>`;
+            }
+          }
+
+          return html`
+            <div class="${cardClasses}" data-url="${url}">
+              <div class="job-header">
+                <a href="${url}" target="_blank" rel="noopener noreferrer" class="job-title">${title}</a>
+                <div class="job-meta">
+                  <span>${company}</span> • <span>${location}</span>
+                </div>
+              </div>
+
+              <div class="badges-row">
+                ${safe(extraBadgesHtml)}
+                ${job.archived ? safe(html`<span class="badge badge-archived" title="This posting is older than the current scrape window; details are from when you saved it.">ARCHIVED</span>`) : ''}
+                ${job.portal ? safe(html`<span class="badge badge-portal">${job.portal}</span>`) : ''}
+                ${(!job.archived && job.fit) ? safe(html`<span class="badge ${fitBadgeClass}">${job.fit} fit</span>`) : ''}
+                ${job.archived ? '' : safe(html`<span class="badge badge-score">Score: ${job.score || 0}</span>`)}
+                ${job.isNew ? safe(html`<span class="badge badge-new">NEW</span>`) : ''}
+                ${job.date ? safe(html`<span class="badge badge-date">${getRelativeTime(job.date)}</span>`) : ''}
+              </div>
+              
+              ${job.archived ? '' : safe(salaryHtml)}
+
+              <div class="chips-row">
+                ${safe(euExtrasHtml)}
+                ${safe(langChipsHtml)}
+                ${safe(otherChipsHtml)}
+                ${safe(matchedKeywordsHtml)}
+              </div>
+              <div class="job-actions" style="display: flex; gap: 0.5rem; margin-top: 0.75rem; align-items: stretch; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+                <select class="job-stage-select" data-url="${url}" style="flex: 0 0 auto;">
+                  <option value="" ${!jobState ? safe('selected') : ''}>Not Applied</option>
+                  <option value="applied" ${jobState === 'applied' ? safe('selected') : ''}>Applied</option>
+                  <option value="interview" ${jobState === 'interview' ? safe('selected') : ''}>Interview</option>
+                  <option value="rejected" ${jobState === 'rejected' ? safe('selected') : ''}>Rejected</option>
+                </select>
+                <input type="text" class="job-note-input" data-url="${url}" placeholder="Add a note (Enter to save)..." value="${jobNote || ''}" style="flex: 1; min-width: 200px;">
+
+              </div>
+            </div>
+          `;
+        });
+
+        domJobsContainer.innerHTML += html`<div class="jobs-grid">${safe(cards.join(''))}</div>`;
+
+        // Bind EU dismiss
+        const dismissBtn = document.getElementById('btn-dismiss-eu');
+        if (dismissBtn) {
+          dismissBtn.addEventListener('click', () => {
+            euDismissed = true;
+            saveEuDismissed();
+            updateJobsList();
+          });
+        }
+      };
+
+      const renderHealth = () => {
+        if (!health || health.length === 0) return '';
+        
+        // Group by portal
+        const grouped = {};
+        health.forEach(h => {
+          const p = h.portal || 'unknown';
+          if (!grouped[p]) grouped[p] = [];
+          grouped[p].push(h);
+        });
+
+        const cards = Object.keys(grouped).sort().map(portal => {
+          const checks = grouped[portal];
+          const items = checks.map(h => {
+            const status = (h.status || '').toLowerCase();
+            const statusClass = status.includes('error') ? 'status-error' : (status.includes('disabled') ? 'status-disabled' : 'status-ok');
+            return html`
+              <div class="health-item">
+                <div class="health-item-top">
+                  <span class="health-query">${h.query || '-'}</span>
+                  <span class="health-status ${statusClass}">${h.status || '-'}</span>
+                </div>
+                <div class="health-meta">
+                  <span>${h.region || 'PL'}</span> • 
+                  <span>${h.location || '-'}</span> • 
+                  <span>${h.count != null ? h.count + ' jobs' : '-'}</span>
+                </div>
+              </div>
+            `;
+          });
+          return html`
+            <div class="health-card">
+              <h3>${portal}</h3>
+              ${safe(items.join(''))}
+            </div>
+          `;
+        });
+
+        return html`
+          <details class="health-section">
+            <summary>Portal Health (${health.length} checks)</summary>
+            <div class="health-grid">
+              ${safe(cards.join(''))}
+            </div>
+          </details>
+        `;
+      };
+
+      // Main Render Core
+      let domJobsContainer = null;
+      let domResultsCount = null;
+
+      const initUI = () => {
+        // A country tab only renders when it has jobs, so a saved/auto-selected
+        // tab whose country is now empty would leave nothing highlighted and an
+        // empty list. Fall back to the leading country, else All.
+        // Every configured country is selectable now, including empty ones, so
+        // there is nothing to bounce off — only an unknown code needs a fallback.
+        if (activeTab !== 'All' && !PIPELINE_TABS[activeTab] && !COUNTRY_CODES.includes(activeTab)) {
+          activeTab = PINNED_COUNTRY;
+          saveTab();
+        }
+
+        try {
+          app.innerHTML = html`
+            <div class="page-header">
+              ${safe(renderHeader())}
+            </div>
+            <div class="sticky-top">
+              ${safe(renderTabs())}
+              ${safe(renderToolbar())}
+            </div>
+            <div class="main-content">
+              <div id="jobs-container"></div>
+              ${safe(renderHealth())}
+            </div>
+          `;
+
+          domJobsContainer = document.getElementById('jobs-container');
+          domResultsCount = document.getElementById('results-count');
+          
+          updateJobsList();
+          bindEvents();
+          if (isHttp) {
+            bindAPIEvents();
+          }
+        } catch (err) {
+          app.innerHTML = html`
+            <div class="main-content" style="padding-top: 2rem;">
+              <div class="empty-state" style="border-color: var(--error);">
+                <h2 style="color: var(--error)">Render Error</h2>
+                <p>Failed to render the dashboard.</p>
+                <code>${err.message}</code>
+              </div>
+            </div>
+          `;
+        }
+      };
+
+      const updateJobsList = () => {
+        const counted = countryCounts();
+        counts.total = counted.__all;
+        // Kept for the legacy header text; the tabs themselves are per-country.
+        counts.pl = counted.PL || 0;
+        counts.eu = counted.EU || 0;
+
+        // Pipeline totals come from the persisted DB, so applications stay
+        // counted even once the posting has aged out of the scrape window.
+        const pc = pipelineCounts();
+        counts.applied = pc.applied;
+        counts.interview = pc.interview;
+        counts.rejected = pc.rejected;
+
+        // Country badges are data-driven now, so update whichever tabs exist
+        // rather than a fixed PL/EU pair.
+        for (const code of COUNTRY_CODES) {
+          const el = document.querySelector('.tab[data-tab="' + code + '"] .badge-count');
+          if (el) el.textContent = counted[code] || 0;
+        }
+        const bAll = document.querySelector('.tab[data-tab="All"] .badge-count'); if (bAll) bAll.textContent = counts.total;
+        const bApp = document.querySelector('.tab[data-tab="Applied"] .badge-count'); if (bApp) bApp.textContent = counts.applied;
+        const bInt = document.querySelector('.tab[data-tab="Interview"] .badge-count'); if (bInt) bInt.textContent = counts.interview;
+        const bRej = document.querySelector('.tab[data-tab="Rejected"] .badge-count'); if (bRej) bRej.textContent = counts.rejected;
+
+        const sortBySelect = document.getElementById('sort-by');
+        if (sortBySelect) {
+          const scoreOption = sortBySelect.querySelector('option[value="score"]');
+          if (scoreOption) {
+            scoreOption.textContent = (activeTab === 'Applied' || activeTab === 'Interview' || activeTab === 'Rejected') ? 'Application Time' : 'Best Match';
+          }
+        }
+
+        const filtered = getFilteredJobs();
+        renderJobsList(filtered);
+        
+        const totalForTab = COUNTRY_CODES.includes(activeTab)
+          ? (counted[activeTab] || 0)
+          : (activeTab === 'Applied' ? counts.applied
+            : activeTab === 'Interview' ? counts.interview
+            : activeTab === 'Rejected' ? counts.rejected
+            : counts.total);
+        
+        const suffix = (activeTab === 'Applied' || activeTab === 'Interview' || activeTab === 'Rejected') ? ' in this stage' : '';
+        // Say how the search box read the query (abbreviations, typo fixes,
+        // related titles), so a broader result set is never a mystery.
+        const understood = filters.text ? textMatcherFor(filters.text).explain.join(' · ') : '';
+        domResultsCount.textContent = 'Showing ' + filtered.length + ' of ' + totalForTab + suffix + (lastLangHidden ? ' · ' + lastLangHidden + ' hidden by language' : '') + (understood ? ' — ' + understood : '');
+        domResultsCount.title = understood ? 'Search understood: ' + understood : '';
+
+        // Toggle clear filters button
+        const btnClear = document.getElementById('btn-clear-filters');
+        if (btnClear) {
+          const hasActiveFilters = filters.text || filters.fit !== 'all' || filters.portal !== 'all' || filters.newOnly || Array.isArray(filters.hideLangs) || filters.remoteOnly || filters.sort !== 'score';
+          btnClear.classList.toggle('visible', !!hasActiveFilters);
+        }
+      };
+
+      const bindEvents = () => {
+        // Tab clicks
+        document.querySelectorAll('.tab').forEach(btn => {
+          // The country dropdown is styled as a tab but carries no data-tab;
+          // it manages its own selection below.
+          if (!btn.dataset.tab) return;
+          btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            const target = e.currentTarget;
+            target.classList.add('active');
+            activeTab = target.dataset.tab;
+            saveTab();
+            updateJobsList();
+          });
+        });
+
+        // Country menu. Themed rather than a native <select> so it matches the
+        // dashboard in both colour schemes; the OS-drawn option list could not
+        // be styled and looked wrong on the dark theme.
+        const countryBtn = document.getElementById('country-btn');
+        if (countryBtn) {
+          countryBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (closeCountryMenu()) return; // second click closes it
+            closeLangMenu();
+
+            const counted = countryCounts();
+            const ordered = allCountryOptions(counted);
+
+            const menu = document.createElement('div');
+            menu.className = 'country-menu';
+            menu.setAttribute('role', 'menu');
+
+            ordered.forEach(code => {
+              const item = document.createElement('button');
+              item.className = 'country-menu-item'
+                + (code === activeTab ? ' is-current' : '')
+                + (!counted[code] ? ' is-empty' : '');
+              item.setAttribute('role', 'menuitem');
+              item.innerHTML =
+                '<span class="country-menu-label"></span><span class="badge-count"></span>';
+              item.querySelector('.country-menu-label').textContent = COUNTRY_LABELS[code] || code;
+              item.querySelector('.badge-count').textContent = counted[code] || 0;
+              item.onclick = (ev) => {
+                ev.stopPropagation();
+                closeCountryMenu();
+                activeTab = code;
+                saveTab();
+                initUI();
+              };
+              menu.appendChild(item);
+            });
+
+            document.body.appendChild(menu);
+            activeCountryMenu = menu;
+            countryBtn.setAttribute('aria-expanded', 'true');
+
+            // Anchor under the button, flipping left if it would overflow.
+            const r = countryBtn.getBoundingClientRect();
+            const mr = menu.getBoundingClientRect();
+            let x = r.left;
+            if (x + mr.width > window.innerWidth - 8) x = window.innerWidth - mr.width - 8;
+            menu.style.left = Math.max(8, x) + 'px';
+            menu.style.top = (r.bottom + 4) + 'px';
+          });
+        }
+
+        // Form bindings
+        const bindInput = (id, prop, isCheckbox = false) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.addEventListener('change', (e) => {
+            filters[prop] = isCheckbox ? e.target.checked : e.target.value;
+            saveFilters();
+            updateJobsList();
+          });
+          if (!isCheckbox && el.tagName === 'INPUT') {
+            el.addEventListener('input', (e) => {
+              filters[prop] = e.target.value;
+              saveFilters();
+              updateJobsList();
+            });
+          }
+        };
+
+        bindInput('filter-text', 'text');
+        bindInput('filter-fit', 'fit');
+        bindInput('filter-portal', 'portal');
+        bindInput('filter-new', 'newOnly', true);
+        bindInput('filter-remote', 'remoteOnly', true);
+        bindInput('sort-by', 'sort');
+
+        // Language menu: a checklist of the languages jobs in this list require.
+        // Ticking a box hides every job that requires that language.
+        const langBtn = document.getElementById('lang-btn');
+        if (langBtn) {
+          langBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (closeLangMenu()) return; // second click closes it
+            closeCountryMenu();
+
+            const menu = document.createElement('div');
+            menu.className = 'country-menu lang-menu';
+            menu.setAttribute('role', 'group');
+            menu.setAttribute('aria-label', 'Hide jobs that require');
+            menu.addEventListener('click', (ev) => ev.stopPropagation()); // ticking boxes keeps it open
+
+            const head = document.createElement('div');
+            head.className = 'lang-menu-head';
+            head.textContent = 'Hide jobs that require';
+            menu.appendChild(head);
+
+            const counts = langCounts();
+            const hidden = hiddenLangs();
+            if (!counts.length) {
+              const empty = document.createElement('div');
+              empty.className = 'lang-menu-empty';
+              empty.textContent = 'No job in this list requires a language other than English.';
+              menu.appendChild(empty);
+            }
+            const boxes = [];
+            counts.forEach(([lang, n]) => {
+              const row = document.createElement('label');
+              row.className = 'lang-menu-item';
+              row.innerHTML = '<input type="checkbox"><span class="lang-menu-label"></span><span class="badge-count"></span>';
+              const box = row.querySelector('input');
+              box.checked = hidden.has(lang);
+              row.querySelector('.lang-menu-label').textContent = langLabel(lang);
+              row.querySelector('.badge-count').textContent = n;
+              box.addEventListener('change', () => {
+                const s = hiddenLangs();
+                if (box.checked) s.add(lang); else s.delete(lang);
+                setHiddenLangs([...s]);
+              });
+              boxes.push([lang, box]);
+              menu.appendChild(row);
+            });
+            if (counts.length) {
+              const actions = document.createElement('div');
+              actions.className = 'lang-menu-actions';
+              const showAll = document.createElement('button');
+              showAll.type = 'button';
+              showAll.textContent = 'Show all';
+              showAll.onclick = () => {
+                setHiddenLangs([]);
+                boxes.forEach(([, b]) => { b.checked = false; });
+              };
+              const reset = document.createElement('button');
+              reset.type = 'button';
+              reset.textContent = 'Default';
+              reset.title = 'Hide the languages your profile does not list';
+              reset.onclick = () => {
+                setHiddenLangs(null);
+                const d = hiddenLangs();
+                boxes.forEach(([l, b]) => { b.checked = d.has(l); });
+              };
+              actions.append(showAll, reset);
+              menu.appendChild(actions);
+            }
+
+            document.body.appendChild(menu);
+            activeLangMenu = menu;
+            langBtn.setAttribute('aria-expanded', 'true');
+            // Anchor under the button, flipping left if it would overflow.
+            const r = langBtn.getBoundingClientRect();
+            const mr = menu.getBoundingClientRect();
+            let x = r.left;
+            if (x + mr.width > window.innerWidth - 8) x = window.innerWidth - mr.width - 8;
+            menu.style.left = Math.max(8, x) + 'px';
+            menu.style.top = (r.bottom + 4) + 'px';
+          });
+        }
+
+        // Clear filters
+        const btnClear = document.getElementById('btn-clear-filters');
+        if (btnClear) {
+          btnClear.addEventListener('click', () => {
+            filters = { ...defaultFilters };
+            saveFilters();
+            // sync DOM
+            document.getElementById('filter-text').value = '';
+            document.getElementById('filter-fit').value = 'all';
+            document.getElementById('filter-portal').value = 'all';
+            document.getElementById('sort-by').value = 'score';
+            document.getElementById('filter-new').checked = false;
+            document.getElementById('lang-btn-text').textContent = langButtonText();
+            document.getElementById('filter-remote').checked = false;
+            updateJobsList();
+          });
+        }
+
+        // Clickable cards
+        if (domJobsContainer) {
+          domJobsContainer.addEventListener('change', (e) => {
+            if (e.target.classList.contains('job-stage-select')) {
+              const url = e.target.dataset.url;
+              const job = findJobByUrl(url);
+              if (job) {
+                const stateVal = e.target.value || null;
+                setJobState(job, stateVal, undefined);
+              }
+            }
+          });
+
+          const handleNoteSave = (input) => {
+            const url = input.dataset.url;
+            const job = findJobByUrl(url);
+            if (!job) return;
+            const stateInfo = stateFor(job);
+            const currentNote = stateInfo ? stateInfo.note : '';
+            const newNote = input.value.trim();
+            if (newNote !== (currentNote || '')) {
+              setJobState(job, undefined, newNote);
+              showToast('Note saved');
+            }
+          };
+
+          domJobsContainer.addEventListener('blur', (e) => {
+            if (e.target.classList.contains('job-note-input')) {
+              handleNoteSave(e.target);
+            }
+          }, true);
+
+          domJobsContainer.addEventListener('keydown', (e) => {
+            if (!e.target.classList.contains('job-note-input')) return;
+            // Plain Enter saves. It previously required Ctrl/Cmd+Enter, so the
+            // only discoverable way to commit a note was to click outside the
+            // box. Shift+Enter is left alone for anyone used to it as newline.
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              e.target.blur(); // blur handler performs the save
+            } else if (e.key === 'Escape') {
+              // Abandon the edit and restore the stored value.
+              const job = findJobByUrl(e.target.dataset.url);
+              const st = job ? stateFor(job) : null;
+              e.target.value = (st && st.note) || '';
+              e.target.blur();
+            }
+          });
+
+
+          domJobsContainer.addEventListener('click', (e) => {
+            const card = e.target.closest('.job-card');
+            if (!card) return;
+            // Ignore interactive elements
+            if (e.target.closest('a, button, input, label, select, textarea')) return;
+            // Ignore if user is selecting text
+            if (window.getSelection().toString().length > 0) return;
+            
+            const url = card.dataset.url;
+            if (url && url !== '#') {
+              window.open(url, '_blank');
+            }
+          });
+
+          // Context menu
+          domJobsContainer.addEventListener('contextmenu', (e) => {
+            const card = e.target.closest('.job-card');
+            if (!card) return;
+            e.preventDefault();
+            closeContextMenu();
+
+            const url = card.dataset.url;
+            const job = findJobByUrl(url);
+            if (!job) return;
+
+            const currentState = stageOf(job);
+
+            const menu = document.createElement('div');
+            menu.className = 'context-menu';
+            menu.setAttribute('role', 'menu');
+
+            const createItem = (text, onClick, variant = 'neutral') => {
+              const btn = document.createElement('button');
+              btn.className = 'context-menu-item ctx-' + variant;
+              btn.setAttribute('role', 'menuitem');
+              btn.textContent = text;
+              btn.onclick = (ev) => {
+                ev.stopPropagation();
+                closeContextMenu();
+                onClick();
+              };
+              menu.appendChild(btn);
+              return btn;
+            };
+
+            // Navigation first: opening the posting and grabbing its link are the
+            // actions used most often and are non-destructive, so they sit at the
+            // top where the pointer already is. The pipeline actions (which mutate
+            // saved state, including the destructive delete) follow the separator.
+            createItem('Open posting', () => {
+              window.open(job.url, '_blank');
+            }, 'neutral');
+            createItem('Copy link', () => {
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(job.url).then(() => showToast('Link copied'));
+              } else {
+                const ta = document.createElement('textarea');
+                ta.value = job.url;
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); showToast('Link copied'); } catch(err) {}
+                document.body.removeChild(ta);
+              }
+            }, 'neutral');
+
+            const sep = document.createElement('div');
+            sep.className = 'context-menu-separator';
+            menu.appendChild(sep);
+
+            createItem(currentState === 'applied' ? 'Unmark as applied' : 'Mark as applied', () => {
+              setJobState(job, currentState === 'applied' ? null : 'applied', undefined);
+            }, 'applied');
+            if (currentState !== 'interview') {
+              createItem('Move to Interview', () => { setJobState(job, 'interview', undefined); }, 'interview');
+            }
+            if (currentState !== 'rejected') {
+              createItem('Move to Rejected', () => { setJobState(job, 'rejected', undefined); }, 'rejected');
+            }
+            createItem('Delete notification', () => {
+              setJobState(job, 'deleted', undefined);
+              showToast('Deleted', () => setJobState(job, null, undefined));
+            }, 'danger');
+
+            document.body.appendChild(menu);
+            activeContextMenu = menu;
+
+            let x = e.clientX;
+            let y = e.clientY;
+            const rect = menu.getBoundingClientRect();
+            if (x + rect.width > window.innerWidth) x -= rect.width;
+            if (y + rect.height > window.innerHeight) y -= rect.height;
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+
+            const items = Array.from(menu.querySelectorAll('.context-menu-item'));
+            if (items.length > 0) items[0].focus();
+
+            menu.addEventListener('keydown', (ev) => {
+              const idx = items.indexOf(document.activeElement);
+              if (ev.key === 'ArrowDown') {
+                ev.preventDefault();
+                items[(idx + 1) % items.length].focus();
+              } else if (ev.key === 'ArrowUp') {
+                ev.preventDefault();
+                items[(idx - 1 + items.length) % items.length].focus();
+              }
+            });
+          });
+        }
+
+        // Context Menu State and global close handlers
+        let activeContextMenu = null;
+        const closeContextMenu = () => {
+          if (activeContextMenu) {
+            activeContextMenu.remove();
+            activeContextMenu = null;
+          }
+        };
+
+        document.addEventListener('click', closeContextMenu);
+        window.addEventListener('resize', closeContextMenu);
+        window.addEventListener('scroll', closeContextMenu, true);
+
+        // Global Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') closeContextMenu();
+          
+          const searchInput = document.getElementById('filter-text');
+          if (!searchInput) return;
+          
+          if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            searchInput.focus();
+          } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+            searchInput.value = '';
+            filters.text = '';
+            saveFilters();
+            updateJobsList();
+            searchInput.blur();
+          }
+        });
+      };
+
+      const bindAPIEvents = () => {
+        // CV Upload
+        const cvInput = document.getElementById('cv-upload-input');
+        const cvDropzone = document.getElementById('cv-dropzone');
+        const cvPanel = document.getElementById('cv-panel');
+
+        const handleCVFile = async (file) => {
+          if (!file) return;
+          cvPanel.innerHTML = renderCVContent('Uploading...', '');
+          
+          const formData = new FormData();
+          formData.append('cv', file);
+          
+          try {
+            const res = await fetch('/api/cv', { method: 'POST', body: formData });
+            const result = await res.json();
+            
+            if (!res.ok) {
+              document.getElementById('cv-panel').innerHTML = renderCVContent(result.error || 'Upload failed', 'error');
+            } else {
+              data.cv = result.cv;
+              document.getElementById('cv-panel').innerHTML = renderCVContent('Successfully uploaded', 'success');
+              // Remove success message after a bit
+              setTimeout(() => {
+                const panel = document.getElementById('cv-panel');
+                if (panel) panel.innerHTML = renderCVContent();
+                bindCVInput(); // rebind
+              }, 3000);
+            }
+          } catch (e) {
+            document.getElementById('cv-panel').innerHTML = renderCVContent(e.message, 'error');
+          }
+          bindCVInput(); // rebind events on the newly injected HTML
+        };
+
+        // window.JOBS.cv is only a snapshot taken at the last scrape, so a CV
+        // uploaded since then would not show after a reload. Ask the server for
+        // the authoritative record. Best-effort: failure just leaves the
+        // snapshot value in place.
+        const refreshCVFromServer = async () => {
+          try {
+            const res = await fetch('/api/cv');
+            if (!res.ok) return;
+            const body = await res.json();
+            if (!body || body.current === undefined) return;
+            data.cv = body.current;
+            const panel = document.getElementById('cv-panel');
+            if (panel) {
+              panel.innerHTML = renderCVContent();
+              bindCVInput();
+            }
+          } catch (e) {
+            /* server not running - keep the snapshot */
+          }
+        };
+
+        const bindCVInput = () => {
+          const input = document.getElementById('cv-upload-input');
+          const dropzone = document.getElementById('cv-dropzone');
+          if (!input || !dropzone) return;
+
+
+          input.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            // Clear the value so picking the SAME file again still fires
+            // 'change'. Without this, re-uploading a corrected CV that kept its
+            // filename appeared to do nothing at all.
+            e.target.value = '';
+            if (file) handleCVFile(file);
+          });
+
+          dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+          });
+          dropzone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+          });
+          dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+              handleCVFile(e.dataTransfer.files[0]);
+            }
+          });
+        };
+        bindCVInput();
+        if (isHttp) refreshCVFromServer();
+
+        const bindScrape = () => {
+          // The panel is shared. When Smart Search owns it, its own wiring
+          // applies and none of the Scraper controls exist.
+          if (smartState.open) { bindSmart(); return; }
+          bindSmartToggle();
+          const btn = document.getElementById('btn-scrape');
+          const input = document.getElementById('scrape-jobage');
+
+
+          // Keep the plain-English hint in sync with the number the user picked,
+          // so "how old a post may be" is never ambiguous.
+          if (input) {
+            input.addEventListener('input', () => {
+              const el = document.getElementById('scrape-hint-days');
+              if (el) el.textContent = input.value || lastJobage;
+            });
+
+            // Clicking the field empties it so a new value can be typed straight
+            // away instead of having to select/delete the existing digit first.
+            // The old value is remembered and restored on blur, so clicking in
+            // and then clicking away can never leave the field blank (which
+            // would otherwise silently fall back to the default on submit).
+            let lastJobage = input.value || '7';
+            input.addEventListener('focus', () => {
+              lastJobage = input.value || lastJobage;
+              input.value = '';
+            });
+            input.addEventListener('blur', () => {
+              if (input.value === '') {
+                input.value = lastJobage;
+                const el = document.getElementById('scrape-hint-days');
+                if (el) el.textContent = lastJobage;
+              }
+            });
+          }
+
+          const scopeSel = document.getElementById('scrape-scope');
+          if (scopeSel) {
+            scopeSel.addEventListener('change', () => {
+              scrapeScope = scopeSel.value;
+              saveScrapeScope();
+            });
+          }
+
+          if (!btn) return;
+          btn.addEventListener('click', async () => {
+            const jobage = document.getElementById('scrape-jobage').value || 7;
+            const scope = (document.getElementById('scrape-scope') || {}).value || scrapeScope;
+            try {
+              scrapeState.running = true;
+              scrapeState.startedAt = new Date().toISOString();
+              scrapeState.error = null;
+              scrapeState.exitCode = null;
+              scrapeState.progress = { done: 0, total: 0, percent: 0, label: 'Starting…' };
+              document.getElementById('scrape-panel').innerHTML = renderScrapeContent();
+              
+              const res = await fetch('/api/scrape?jobage=' + jobage + '&scope=' + encodeURIComponent(scope), { method: 'POST' });
+              if (res.status === 409) {
+                // Already running, just start polling
+                startScrapePoll();
+                return;
+              }
+              if (!res.ok) {
+                const errData = await res.json().catch(()=>({}));
+                throw new Error(errData.error || 'HTTP ' + res.status);
+              }
+              startScrapePoll();
+            } catch (e) {
+              scrapeState.running = false;
+              scrapeState.error = e.message;
+              document.getElementById('scrape-panel').innerHTML = renderScrapeContent();
+              bindScrape();
+            }
+          });
+
+          bindScrapeCancel();
+        };
+
+        /**
+         * Cancel is rendered by both the Scraper and Smart Search views (same
+         * id, never both at once), so both bind functions call this.
+         */
+        const bindScrapeCancel = () => {
+          const cancelBtn = document.getElementById('btn-scrape-cancel');
+          if (cancelBtn) {
+            cancelBtn.addEventListener('click', async () => {
+              cancelBtn.disabled = true;
+              try {
+                await fetch('/api/scrape/cancel', { method: 'POST' });
+              } catch (e) {
+                scrapeState.error = 'Cancel failed: ' + e.message;
+              }
+              // Pull the authoritative state back rather than assuming.
+              try {
+                const s = await fetch('/api/scrape').then(r => r.json());
+                scrapeState.running = s.running;
+                scrapeState.exitCode = s.exitCode;
+                scrapeState.progress = s.progress;
+              } catch { /* poll will correct it */ }
+              document.getElementById('scrape-panel').innerHTML = renderScrapeContent();
+              bindScrape();
+            });
+          }
+        };
+
+        // -------------------------------------------------------------------
+        // Smart Search wiring. Mirrors bindScrape(): the panel is re-rendered
+        // wholesale via innerHTML, so listeners are re-attached after each
+        // render rather than delegated.
+        // -------------------------------------------------------------------
+        const rerenderSmart = () => {
+          const p = document.getElementById('scrape-panel');
+          if (!p) return;
+          // Focus survives the innerHTML swap only if it is explicitly restored.
+          // Track it here rather than in the add handler alone, because async
+          // expansion triggers a SECOND re-render a moment later which would
+          // otherwise steal the cursor back out of the box.
+          const active = document.activeElement;
+          const hadFocus = !!active && active.id === 'smart-input';
+          const caret = hadFocus ? active.selectionStart : null;
+          const typed = hadFocus ? active.value : null;
+
+          // The panel is re-rendered by replacing innerHTML, which momentarily
+          // collapses its height to zero. The browser clamps the scroll offset
+          // to the now-shorter document, so the page visibly jumps to the top on
+          // every keyword added. Capture the offset and restore it after the DOM
+          // settles.
+          const y = window.scrollY;
+          const h = p.offsetHeight;
+          p.style.minHeight = h + 'px';
+          // Render through renderScrapeContent, not renderSmartContent: the two
+          // views share this panel and it is what decides which one is showing.
+          // Rendering Smart directly meant toggling back to the Scraper drew the
+          // Smart Search markup again and the switch only ever worked one way.
+          p.innerHTML = renderScrapeContent();
+          bindScrape();
+
+          p.style.minHeight = '';
+          if (window.scrollY !== y) window.scrollTo({ top: y, behavior: 'instant' });
+
+          const input = document.getElementById('smart-input');
+          if (input && (hadFocus || smartState.refocus)) {
+            // After an add the box is cleared; mid-typing re-renders keep what
+            // was typed and the caret position.
+            if (smartState.refocus) {
+              smartState.refocus = false;
+              input.value = '';
+            } else if (typed !== null) {
+              input.value = typed;
+              if (caret !== null) {
+                try { input.setSelectionRange(caret, caret); } catch (e) { /* ignore */ }
+              }
+            }
+            input.focus();
+          }
+        };
+
+
+        const smartExpand = async (kw) => {
+          // Deselections survive a re-expansion (LLM toggle, engine upgrade) for
+          // every term the new expansion still contains.
+          const prevOff = (smartState.expansions[kw] && smartState.expansions[kw].off) || new Set();
+          smartState.expansions[kw] = { expanding: true, terms: null, off: prevOff, engine: 0 };
+          rerenderSmart();
+          try {
+            const url = '/api/keywords/expand?q=' + encodeURIComponent(kw) +
+                        (smartState.useLlm ? '&llm=1' : '');
+            const res = await fetch(url);
+            if (!res.ok) {
+              const e = await res.json().catch(() => ({}));
+              throw new Error(e.error || 'HTTP ' + res.status);
+            }
+            const data = await res.json();
+            smartState.llmAvailable = !!data.llmAvailable;
+            const terms = data.terms || [];
+            const off = new Set([...prevOff].filter(t => terms.some(x => x.term === t)));
+            smartState.expansions[kw] = { expanding: false, terms, off, engine: data.engine || 1 };
+            smartState.error = null;
+          } catch (e) {
+            smartState.expansions[kw] = { expanding: false, terms: [{ term: kw, reason: 'expansion failed', source: 'original' }], off: new Set(), engine: 0 };
+            smartState.error = 'Could not expand "' + kw + '": ' + e.message;
+          }
+          smartSave();
+
+          rerenderSmart();
+        };
+
+        const smartLoadCv = async () => {
+          smartState.cvLoading = true;
+          rerenderSmart();
+          try {
+            const res = await fetch('/api/cv/keywords');
+            smartState.cv = await res.json();
+          } catch (e) {
+            smartState.cv = { empty: true, keywords: [] };
+            smartState.error = 'Could not read CV keywords: ' + e.message;
+          }
+          smartState.cvLoading = false;
+          rerenderSmart();
+        };
+
+        const smartAddKeyword = (raw) => {
+          const kw = String(raw || '').trim();
+          if (!kw) return;
+          if (smartState.keywords.includes(kw)) {
+            smartState.error = '"' + kw + '" is already in the list.';
+            rerenderSmart();
+            return;
+          }
+          smartState.error = null;
+          smartState.keywords.push(kw);
+          // smartExpand re-renders the panel, which replaces the input element,
+          // so focus has to be restored explicitly or every add costs a click.
+          smartState.refocus = true;
+          smartSave();
+          smartExpand(kw);
+        };
+
+
+
+        /**
+         * Wire the Scraper <-> Smart Search switch.
+         *
+         * The button exists in BOTH panel headers, so this is called from
+         * bindScrape and bindSmart alike — whichever view currently owns the
+         * shared panel.
+         */
+        const bindSmartToggle = () => {
+          const toggle = document.getElementById('smart-toggle');
+          if (!toggle) return;
+          toggle.addEventListener('click', () => {
+            smartState.open = !smartState.open;
+            smartState.collapsed = false;
+            smartSave();
+            rerenderSmart();
+            // The CV list is fetched once, the first time Smart Search is
+            // opened, so the Scraper view costs nothing on page load.
+            if (smartState.open && !smartState.cv && !smartState.cvLoading) smartLoadCv();
+          });
+        };
+
+        const bindSmart = () => {
+          const panel = document.getElementById('scrape-panel');
+          if (!panel) return;
+
+          bindSmartToggle();
+          if (!smartState.open) return;
+          bindScrapeCancel();
+
+          const expand = document.getElementById('smart-expand');
+          if (expand) {
+            expand.addEventListener('click', () => {
+              smartState.collapsed = false;
+              rerenderSmart();
+            });
+          }
+          if (smartState.collapsed) return;
+
+
+          const clear = document.getElementById('smart-clear');
+          if (clear) {
+            clear.addEventListener('click', () => {
+              if (!confirm('Remove all ' + smartState.keywords.length + ' keywords?')) return;
+              smartState.keywords = [];
+              smartState.expansions = {};
+              smartState.error = null;
+              smartSave();
+              rerenderSmart();
+            });
+          }
+
+
+          const input = document.getElementById('smart-input');
+          const addBtn = document.getElementById('smart-add');
+          if (addBtn && input) {
+            addBtn.addEventListener('click', () => { smartAddKeyword(input.value); });
+          }
+          if (input) {
+            input.addEventListener('keydown', (ev) => {
+              if (ev.key !== 'Enter') return;
+              ev.preventDefault();
+              smartAddKeyword(input.value);
+            });
+          }
+
+
+
+          const llm = document.getElementById('smart-llm');
+          const ageInput = document.getElementById('smart-jobage');
+          const scopeSel = document.getElementById('smart-scope');
+          if (scopeSel) {
+            // Re-render so native-language chips for markets outside the new
+            // scope are dimmed and the search count is right.
+            scopeSel.addEventListener('change', () => {
+              smartState.scope = scopeSel.value;
+              smartSave();
+              rerenderSmart();
+            });
+          }
+          if (ageInput) {
+            ageInput.addEventListener('input', () => {
+              const n = Number(ageInput.value);
+              if (!Number.isInteger(n) || n < 1 || n > 30) return; // mid-edit / out of range: keep last good value
+              smartState.jobage = n;
+              smartSave();
+            });
+          }
+          if (llm) {
+            llm.addEventListener('change', () => {
+              smartState.useLlm = llm.checked;
+              smartSave();
+              // Re-expand everything so the displayed list matches the setting.
+              smartState.keywords.forEach(smartExpand);
+            });
+          }
+
+          panel.querySelectorAll('[data-remove]').forEach(el => {
+            el.addEventListener('click', () => {
+              const kw = el.getAttribute('data-remove');
+              smartState.keywords = smartState.keywords.filter(k => k !== kw);
+              delete smartState.expansions[kw];
+              smartSave();
+              rerenderSmart();
+            });
+          });
+
+          panel.querySelectorAll('[data-term]').forEach(el => {
+            el.addEventListener('click', () => {
+              const kw = el.getAttribute('data-kw');
+              const term = el.getAttribute('data-term');
+              const ex = smartState.expansions[kw];
+              if (!ex) return;
+              if (ex.off.has(term)) ex.off.delete(term); else ex.off.add(term);
+              smartSave();
+              rerenderSmart();
+            });
+          });
+
+          // Dismiss a CV-derived suggestion. Persisted, so the server
+          // regenerating the CV list on the next load does not bring it back.
+          panel.querySelectorAll('[data-cv-remove]').forEach(el => {
+            el.addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              const term = el.getAttribute('data-cv-remove');
+              if (!smartState.cvHidden.includes(term)) smartState.cvHidden.push(term);
+              smartSave();
+              rerenderSmart();
+            });
+          });
+
+          const cvRestore = document.getElementById('smart-cv-restore');
+          if (cvRestore) {
+            cvRestore.addEventListener('click', () => {
+              smartState.cvHidden = [];
+              smartSave();
+              rerenderSmart();
+            });
+          }
+
+          panel.querySelectorAll('[data-add]').forEach(el => {
+            el.addEventListener('click', () => smartAddKeyword(el.getAttribute('data-add')));
+          });
+
+
+          const run = document.getElementById('smart-run');
+          if (run) {
+            run.addEventListener('click', async () => {
+              const terms = smartSelectedTerms();
+              if (!terms.length) return;
+              const scope = (document.getElementById('smart-scope') || {}).value || scrapeScope;
+              const jobage = smartState.jobage;
+              try {
+                smartState.error = null;
+                scrapeState.running = true;
+                scrapeState.startedAt = new Date().toISOString();
+                scrapeState.error = null;
+                scrapeState.exitCode = null;
+                scrapeState.progress = { done: 0, total: 0, percent: 0, label: 'Starting…' };
+                document.getElementById('scrape-panel').innerHTML = renderScrapeContent();
+                rerenderSmart();
+
+                const res = await fetch(
+                  '/api/scrape/adhoc?scope=' + encodeURIComponent(scope) + '&jobage=' + encodeURIComponent(jobage),
+                  {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    // Expansion already happened in the preview above, so the
+                    // server must not expand a second time.
+                    body: JSON.stringify({ queries: terms, expand: false, llm: false }),
+                  },
+                );
+                if (res.status === 409) { startScrapePoll(); return; }
+                if (!res.ok) {
+                  const e = await res.json().catch(() => ({}));
+                  throw new Error(e.error || 'HTTP ' + res.status);
+                }
+                const data = await res.json();
+                smartState.lastQueries = data.queries || terms;
+                rerenderSmart();
+                startScrapePoll();
+              } catch (e) {
+                scrapeState.running = false;
+                smartState.error = e.message;
+                document.getElementById('scrape-panel').innerHTML = renderScrapeContent();
+                bindScrape();
+                rerenderSmart();
+              }
+            });
+          }
+        };
+
+        /**
+         * Retire the completed progress bar.
+         *
+         * A finished bar is worth a glance ("did it work, how many jobs?") and
+         * then it is just clutter sitting above the results. Only a SUCCESSFUL
+         * run is auto-dismissed — a failure stays until the next run so the exit
+         * code cannot scroll away unnoticed.
+         */
+        let progressDismissTimer = null;
+        const PROGRESS_DISMISS_MS = 12000;
+
+        const scheduleProgressDismiss = () => {
+          if (progressDismissTimer) clearTimeout(progressDismissTimer);
+          progressDismissTimer = setTimeout(() => {
+            progressDismissTimer = null;
+            // Re-check at fire time: a new run may have started since.
+            if (scrapeState.running || scrapeState.exitCode !== 0) return;
+            scrapeState.progressDismissed = true;
+            const panel = document.getElementById('scrape-panel');
+            if (panel) { panel.innerHTML = renderScrapeContent(); bindScrape(); }
+          }, PROGRESS_DISMISS_MS);
+        };
+
+        const startScrapePoll = () => {
+          // A new run supersedes any pending dismissal and makes the bar
+          // relevant again.
+          if (progressDismissTimer) { clearTimeout(progressDismissTimer); progressDismissTimer = null; }
+          scrapeState.progressDismissed = false;
+          if (scrapePollTimer) clearInterval(scrapePollTimer);
+
+          scrapePollTimer = setInterval(async () => {
+            try {
+              const res = await fetch('/api/scrape');
+              const state = await res.json();
+              
+              scrapeState.running = state.running;
+              scrapeState.log = state.log || '';
+              if (state.progress) scrapeState.progress = state.progress;
+              if (state.exitCode !== undefined) scrapeState.exitCode = state.exitCode;
+              if (state.startedAt) scrapeState.startedAt = state.startedAt;
+              
+              const panel = document.getElementById('scrape-panel');
+              if (panel) {
+                panel.innerHTML = renderScrapeContent();
+                if (!scrapeState.running) bindScrape();
+              }
+              // Keep Smart Search's Run button in step with the scrape state —
+              // it must stay disabled for the whole run, however the run began.
+              if (smartState.open) rerenderSmart();
+              
+              if (!state.running) {
+                clearInterval(scrapePollTimer);
+                scrapePollTimer = null;
+                // The scraper has just rewritten data/jobs.json. Pull it in and
+                // re-render so the list reflects the run that finished, instead
+                // of the snapshot this page was loaded with.
+                if (state.exitCode === 0) {
+                  const ok = await refreshJobsData();
+                  if (!ok) {
+                    scrapeState.error = 'Scrape finished but the results could not be loaded. Reload the page.';
+                    const p2 = document.getElementById('scrape-panel');
+                    if (p2) { p2.innerHTML = renderScrapeContent(); bindScrape(); }
+                  } else {
+                    scheduleProgressDismiss();
+                  }
+                }
+              }
+
+            } catch (e) {
+              clearInterval(scrapePollTimer);
+              scrapeState.running = false;
+              scrapeState.error = 'Poll failed: ' + e.message;
+              const panel = document.getElementById('scrape-panel');
+              if (panel) {
+                panel.innerHTML = renderScrapeContent();
+                bindScrape();
+              }
+              if (smartState.open) rerenderSmart();
+            }
+          }, 2000);
+        };
+        
+        smartLoad();
+        // bindScrape() delegates to bindSmart() when Smart Search is open.
+        // Calling bindSmart() here as well attached the toggle listener twice,
+        // so the first click after page load opened and immediately closed it.
+        bindScrape();
+        // Previews stored by an older expansion engine are refreshed in the
+        // background; smartExpand keeps the user's deselections. Runs after
+        // bindScrape(): each refresh re-renders the panel and binds the new
+        // markup itself, so nothing is bound twice.
+        smartState.keywords.forEach((kw) => {
+          const ex = smartState.expansions[kw];
+          if (!ex || ex.engine !== EXPAND_ENGINE) smartExpand(kw);
+        });
+
+        // Fold Smart Search to its header once the user scrolls down to the
+        // jobs; "Expand" brings it back. Registered once (this block can re-run)
+        // and it reads the current smartState on every event.
+        if (!window.__smartCollapseBound) {
+          window.__smartCollapseBound = true;
+          let lastY = window.scrollY;
+          window.addEventListener('scroll', () => {
+            const y = window.scrollY;
+            const down = y > lastY;
+            lastY = y;
+            if (!down || y < 80 || !smartState.open || smartState.collapsed) return;
+            const p = document.getElementById('scrape-panel');
+            // Never fold the panel out from under someone typing in it.
+            if (!p || p.contains(document.activeElement)) return;
+            // Folding shrinks content ABOVE the job list; shift the scroll by the
+            // same amount so the jobs on screen stay where they are.
+            const before = p.offsetHeight;
+            smartState.collapsed = true;
+            p.innerHTML = renderScrapeContent();
+            bindScrape();
+            const shrink = before - p.offsetHeight;
+            if (shrink > 0) window.scrollTo({ top: Math.max(0, y - shrink), behavior: 'instant' });
+            lastY = window.scrollY;
+          }, { passive: true });
+        }
+
+        // A restored keyword whose expansion was never cached (saved mid-flight,
+        // or written by an older build) still needs expanding once.
+        if (smartState.open) {
+          if (!smartState.cv && !smartState.cvLoading) smartLoadCv();
+          smartState.keywords
+            .filter(kw => !smartState.expansions[kw] || !smartState.expansions[kw].terms)
+            .forEach(smartExpand);
+        }
+
+        // A scrape started before this page was loaded (or survived a reload)
+        // must still show its progress — otherwise the bar looks frozen at idle
+        // while the server is halfway through a run.
+        if (isHttp) {
+          fetch('/api/scrape')
+            .then(r => r.json())
+            .then(state => {
+              // The per-search term limit gates the Smart Search run button.
+              if (state && Number.isInteger(state.maxAdhocQueries) && state.maxAdhocQueries > 0) {
+                smartState.maxTerms = state.maxAdhocQueries;
+                if (smartState.open) rerenderSmart();
+              }
+              if (!state || !state.running) return;
+              scrapeState.running = true;
+              scrapeState.log = state.log || '';
+              scrapeState.progress = state.progress || null;
+              scrapeState.startedAt = state.startedAt || null;
+              const panel = document.getElementById('scrape-panel');
+              if (panel) panel.innerHTML = renderScrapeContent();
+              startScrapePoll();
+            })
+            .catch(() => {});
+        }
+      };
+
+      // Bootstrap
+      loadJobStates().then(() => {
+        initUI();
+      });
+    })();
+  </script>
+</body>
+</html>

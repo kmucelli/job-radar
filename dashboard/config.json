@@ -1,0 +1,1054 @@
+{
+  "_comment": "Search configuration for kmucelli. EDIT THIS FILE to change what gets searched — scrape-daily.ts reads it, nothing is hardcoded. Derived from CV: CCIE-DC #69110, Sr. Solution Validation Consulting Engineer @ Cisco, Krakow. ACI Multi-Pod/Multi-Site, NDO/NDFC, VXLAN EVPN, Nexus/UCS, Python/Terraform/Ansible, IXIA/Spirent, FTD/FMC. Languages: Albanian C2, English C1, Polish A2.",
+  "profile": {
+    "name": "kmucelli",
+    "homeCity": "Krakow",
+    "title": "Senior Network / Solution Validation Engineer",
+    "certifications": [
+      "CCIE Data Center #69110"
+    ],
+    "polishLevel": "A2",
+    "languages": {
+      "english": "C1",
+      "albanian": "C2",
+      "polish": "A2"
+    },
+    "minWorkingLevel": "B2"
+  },
+  "jobageDays": 1,
+  "_regions": "Every source is tagged PL (Polish market, on-site/hybrid/remote all fine) or EU (must be doable remotely FROM Poland). EU sources are additionally filtered by the euRemote gate below.",
+  "portals": {
+    "linkedin": {
+      "enabled": true,
+      "region": "PL",
+      "locations": [
+        "Poland",
+        "Kraków, Lesser Poland, Poland"
+      ],
+      "queries": [
+        "network architect",
+        "data center network engineer",
+        "network automation engineer",
+        "cisco network engineer",
+        "solution validation engineer",
+        "network test automation"
+      ],
+      "limit": 25,
+      "_note": "LinkedIn's public guest endpoint IGNORES the workplace-type filter (f_WT) — verified by diffing raw responses. Do NOT add --remote here expecting it to work; it silently returns unfiltered results. PL only.",
+      "_rateNote": "linkedin, linkedinEu, linkedinDe and linkedinNl all call linkedin.com, so scrape-daily.ts runs them through ONE shared worker pool at the lowest concurrency and longest gapMs among them. At 4 lanes each (16 requests at once) 70 of 104 calls failed with HTTP 429.",
+      "scopes": [
+        "PL"
+      ],
+      "concurrency": 2,
+      "gapMs": 1500
+    },
+    "pracuj": {
+      "enabled": true,
+      "region": "PL",
+      "locations": [
+        ""
+      ],
+      "queries": [
+        "network architect",
+        "network engineer",
+        "data center",
+        "network automation",
+        "inzynier sieci",
+        "data center network engineer",
+        "network automation engineer",
+        "cisco network engineer",
+        "solution validation engineer",
+        "network test automation"
+      ],
+      "limit": 50,
+      "scopes": [
+        "PL"
+      ],
+      "concurrency": 4
+    },
+    "justjoin": {
+      "enabled": true,
+      "region": "PL",
+      "locations": [
+        "krakow",
+        "warszawa",
+        "wroclaw",
+        "gdansk",
+        "poznan",
+        "katowice"
+      ],
+      "queries": [
+        "network",
+        "network architect",
+        "data center network engineer",
+        "network automation engineer",
+        "cisco network engineer",
+        "solution validation engineer",
+        "network test automation"
+      ],
+      "limit": 25,
+      "scopes": [
+        "PL"
+      ],
+      "concurrency": 6,
+      "extraArgs": [
+        "--detail-concurrency",
+        "3",
+        "--cache-dir",
+        "dashboard/data/cache/justjoin"
+      ],
+      "_note": "Dominant cost in a Poland run: this CLI fetches the listing page and then up to limit*2 detail pages. Those are fetched 3-at-a-time inside the CLI (--detail-concurrency), and parsed offers are cached for 72h under --cache-dir, so an offer already seen by an earlier query, city or day costs no request at all. scrape-daily.ts prunes expired cache files at the start of each run.",
+      "_limit_note": "Kept at 25 deliberately: dropping to 12 halved detail fetches but also cut Polish results from 62 to 44, so the extra fetches are earning their cost."
+    },
+    "nofluffjobs": {
+      "enabled": true,
+      "region": "PL",
+      "locations": [
+        "krakow",
+        "warszawa",
+        "wroclaw"
+      ],
+      "queries": [
+        "network",
+        "network architect",
+        "data center network engineer"
+      ],
+      "limit": 25,
+      "scopes": [
+        "PL"
+      ],
+      "concurrency": 1,
+      "gapMs": 4000,
+      "_note": "Rate-limit sensitive: 429s at anything above strictly serial access, so both the process and its detail fetches stay serial with a 4s gap. Parsed offers are cached for 72h under --cache-dir, which removes most repeat detail requests (the main source of the 429s); a detail that still fails after retries is skipped rather than failing the whole query.",
+      "extraArgs": [
+        "--detail-concurrency",
+        "1",
+        "--cache-dir",
+        "dashboard/data/cache/nofluffjobs"
+      ]
+    },
+    "linkedinEu": {
+      "enabled": true,
+      "region": "EU",
+      "cli": "linkedin",
+      "locations": [
+        "European Union"
+      ],
+      "queries": [
+        "network architect",
+        "data center network engineer",
+        "network automation engineer",
+        "cisco network engineer",
+        "remote network engineer"
+      ],
+      "limit": 25,
+      "_note": "Second pass over the same LinkedIn CLI, EU-wide instead of Poland — 'cli' points at the shared linkedin-search skill. Location is deliberately 'European Union', NOT 'Europe': the latter returns overwhelmingly UK results, which are outside the EU and outside what you asked for. Tagged EU, so every hit still has to clear the strict euRemote gate below; on-site Frankfurt/Madrid roles are dropped and only provably remote-from-Poland ones survive.",
+      "scopes": [
+        "EU"
+      ],
+      "concurrency": 2,
+      "gapMs": 1500
+    },
+    "freehire": {
+      "enabled": true,
+      "region": "EU",
+      "locations": [
+        ""
+      ],
+      "queries": [
+        "network engineer",
+        "network architect",
+        "data center network",
+        "network automation"
+      ],
+      "limit": 25,
+      "extraArgs": [
+        "--region",
+        "eu",
+        "--remote",
+        "remote"
+      ],
+      "_note": "freehire genuinely honours the facets — results carry work_mode:'remote' and regions:['eu']. Switched from --country DE,NL to --region eu: the country filter was capping this at two markets, while --region eu returns CZ/RO/PL/DE/SE/ES etc. This is the primary pan-EU source.",
+      "scopes": [
+        "EU"
+      ],
+      "concurrency": 4
+    },
+    "linkedinDe": {
+      "enabled": true,
+      "region": "EU",
+      "cli": "linkedin",
+      "scopes": [
+        "DE"
+      ],
+      "concurrency": 2,
+      "gapMs": 1500,
+      "locations": [
+        "Germany",
+        "Berlin, Germany",
+        "Munich, Bavaria, Germany"
+      ],
+      "queries": [
+        "network architect",
+        "data center network engineer",
+        "network automation engineer",
+        "cisco network engineer",
+        "solution validation engineer",
+        "network test automation"
+      ],
+      "limit": 25,
+      "_note": "Germany scope. Reuses the shared linkedin-search CLI via 'cli'. localMarket:true means the strict remote-from-Poland gate does NOT apply here — a Berlin/Amsterdam on-site role is a valid answer to 'search in Germany/Netherlands'. The EU Remote lane keeps the strict gate.",
+      "localMarket": true
+    },
+    "freehireDe": {
+      "enabled": true,
+      "region": "EU",
+      "cli": "freehire",
+      "scopes": [
+        "DE"
+      ],
+      "concurrency": 4,
+      "locations": [
+        ""
+      ],
+      "queries": [
+        "network engineer",
+        "network architect",
+        "data center network",
+        "network automation"
+      ],
+      "limit": 25,
+      "extraArgs": [
+        "--country",
+        "DE",
+        "--remote",
+        "remote"
+      ],
+      "_note": "Germany-only slice of freehire. The EU-wide 'freehire' entry covers the same board for the EU scope. localMarket:true means the strict remote-from-Poland gate does NOT apply here — a Berlin/Amsterdam on-site role is a valid answer to 'search in Germany/Netherlands'. The EU Remote lane keeps the strict gate.",
+      "localMarket": true
+    },
+    "linkedinNl": {
+      "enabled": true,
+      "region": "EU",
+      "cli": "linkedin",
+      "scopes": [
+        "NL"
+      ],
+      "concurrency": 2,
+      "gapMs": 1500,
+      "locations": [
+        "Netherlands",
+        "Amsterdam, North Holland, Netherlands"
+      ],
+      "queries": [
+        "network architect",
+        "data center network engineer",
+        "network automation engineer",
+        "cisco network engineer",
+        "solution validation engineer",
+        "network test automation"
+      ],
+      "limit": 25,
+      "_note": "Netherlands scope, sharing the linkedin-search CLI via 'cli'. localMarket:true means the strict remote-from-Poland gate does NOT apply here — a Berlin/Amsterdam on-site role is a valid answer to 'search in Germany/Netherlands'. The EU Remote lane keeps the strict gate.",
+      "localMarket": true
+    },
+    "freehireNl": {
+      "enabled": true,
+      "region": "EU",
+      "cli": "freehire",
+      "scopes": [
+        "NL"
+      ],
+      "concurrency": 4,
+      "locations": [
+        ""
+      ],
+      "queries": [
+        "network engineer",
+        "network architect",
+        "data center network",
+        "network automation"
+      ],
+      "limit": 25,
+      "extraArgs": [
+        "--country",
+        "NL",
+        "--remote",
+        "remote"
+      ],
+      "_note": "Netherlands slice of freehire; verified to return remote NL roles. localMarket:true means the strict remote-from-Poland gate does NOT apply here — a Berlin/Amsterdam on-site role is a valid answer to 'search in Germany/Netherlands'. The EU Remote lane keeps the strict gate.",
+      "localMarket": true
+    }
+  },
+  "apiSources": {
+    "remotive": {
+      "enabled": true,
+      "region": "EU",
+      "endpoint": "https://remotive.com/api/remote-jobs",
+      "queries": [
+        "network engineer",
+        "network automation",
+        "site reliability",
+        "infrastructure engineer"
+      ],
+      "limit": 40,
+      "_attribution": "Remotive's terms require linking back to the Remotive job URL and naming Remotive as the source. The dashboard does both via the portal badge and the card link. Do not republish elsewhere.",
+      "scopes": [
+        "EU"
+      ]
+    },
+    "arbeitnow": {
+      "enabled": true,
+      "region": "EU",
+      "endpoint": "https://www.arbeitnow.com/api/job-board-api",
+      "pages": 3,
+      "_note": "German market. ~175 jobs/page, only a handful flagged remote:true, and most of those are non-technical. Low yield, but free and cheap to poll.",
+      "scopes": [
+        "DE",
+        "EU"
+      ],
+      "localMarket": true
+    },
+    "remoteok": {
+      "enabled": false,
+      "region": "EU",
+      "endpoint": "https://remoteok.com/api",
+      "_note": "Disabled by default: the location field is mostly empty or a random city, so the EU-eligibility gate rejects nearly everything and the signal-to-noise is poor. Enable if you want the extra volume.",
+      "scopes": [
+        "EU"
+      ]
+    },
+    "himalayas": {
+      "enabled": true,
+      "region": "EU",
+      "scopes": [
+        "DE",
+        "NL",
+        "EU"
+      ],
+      "endpoint": "https://himalayas.app/jobs/api/search",
+      "queries": [
+        "network engineer",
+        "network architect",
+        "network automation",
+        "data center network"
+      ],
+      "countries": [
+        "DE",
+        "NL"
+      ],
+      "_attribution": "Himalayas asks that you link back to the job URL and name Himalayas as the source. The card link and portal badge do both."
+    },
+    "adzuna": {
+      "enabled": false,
+      "region": "EU",
+      "scopes": [
+        "PL",
+        "DE",
+        "NL",
+        "EU"
+      ],
+      "endpoint": "https://api.adzuna.com/v1/api/jobs",
+      "queries": [
+        "network engineer",
+        "network architect",
+        "data center network",
+        "network automation"
+      ],
+      "countries": [
+        "de",
+        "pl",
+        "nl",
+        "at"
+      ],
+      "appId": "",
+      "appKey": "",
+      "limit": 20,
+      "_setup": "DISABLED until you add credentials. Register free at https://developer.adzuna.com/signup, paste app_id/app_key into appId/appKey above, then set enabled:true. Free tier: 25/min, 250/day, 2500/month.",
+      "_why": "Adzuna aggregates Indeed, StepStone, Reed and others. Neither Indeed nor StepStone offers a usable public API and both forbid scraping, so this is the legitimate way to reach that inventory.",
+      "_attribution": "Adzuna's terms require showing 'Jobs by Adzuna' with a link back wherever their listings appear."
+    },
+    "arbeitsagentur": {
+      "enabled": true,
+      "region": "EU",
+      "scopes": [
+        "DE"
+      ],
+      "localMarket": true,
+      "endpoint": "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs",
+      "queries": [
+        "Network Engineer",
+        "Netzwerk Engineer",
+        "Network Architect",
+        "Netzwerkadministrator",
+        "Data Center Network",
+        "Network Automation"
+      ],
+      "limit": 50,
+      "_note": "Bundesagentur fuer Arbeit (Jobboerse) - Germany's federal employment agency and by far the largest German job database. Genuinely open API: the X-API-Key value is a fixed public token used by their own web UI, not a secret, so no signup is needed. IMPORTANT: v4 and v5 now return 403/404 - v6 is the current version.",
+      "_why": "StepStone and Indeed have no usable public API and forbid scraping. This is the legitimate route to broad German coverage, and much of the same inventory is listed here."
+    },
+    "bulldogjob": {
+      "enabled": true,
+      "region": "PL",
+      "scopes": [
+        "PL"
+      ],
+      "endpoint": "https://bulldogjob.pl/companies/jobs/s",
+      "filters": [
+        "role,administrator",
+        "role,architect",
+        "role,security",
+        "skills,Cisco",
+        "skills,Juniper",
+        "skills,Networking",
+        "skills,TCP/IP",
+        "skills,BGP"
+      ],
+      "_note": "Polish IT board (sources.ts). Its URLs have no free-text search, so it is read through its own role/skill filter pages and the title gate decides relevance. Offers based only outside Poland (Riga, Bucharest, Berlin) are dropped. Search pages carry no posting date, so 'New' comes from seen.json alone."
+    },
+    "eures": {
+      "enabled": false,
+      "region": "PL",
+      "scopes": [
+        "PL"
+      ],
+      "endpoint": "https://europa.eu/eures/api/jv-searchengine/public/jv-search/search",
+      "countries": [
+        "pl"
+      ],
+      "queries": [
+        "network engineer",
+        "network administrator",
+        "administrator sieci",
+        "inzynier sieci",
+        "data center"
+      ],
+      "limit": 50,
+      "_note": "EURES, the EU job-mobility portal (sources.ts): the public employment services of every member state, Poland's included. Open API, no key; matched on job titles, 50 best per query, then the title gate. DISABLED by default: tested 2026-11-02, a week of EURES Poland held no IT network roles - its 'sieci' (network) titles were water, gas and telecom fitter jobs from labour offices (water/gas/power-grid ones are dropped at the source anyway). Enable it, and add country codes to 'countries', if you want that public-employment inventory."
+    },
+    "germantechjobs": {
+      "enabled": true,
+      "region": "EU",
+      "scopes": [
+        "DE"
+      ],
+      "localMarket": true,
+      "fetcher": "devitjobs",
+      "endpoint": "https://germantechjobs.de/api/jobsLight",
+      "queries": [
+        "network engineer",
+        "network architect",
+        "network administrator",
+        "netzwerk",
+        "data center",
+        "rechenzentrum",
+        "cisco"
+      ],
+      "_note": "GermanTechJobs.de (sources.ts, 'devitjobs' fetcher). One request returns the whole board (~750 tech jobs); kept are its own Network category plus postings whose title or technology list contains every word of a query. ~95% are written in German, which the board states per posting, so those carry a 'Written in German' language tag."
+    },
+    "devitjobsNl": {
+      "enabled": true,
+      "region": "EU",
+      "scopes": [
+        "NL"
+      ],
+      "localMarket": true,
+      "fetcher": "devitjobs",
+      "endpoint": "https://devitjobs.nl/api/jobsLight",
+      "queries": [
+        "network engineer",
+        "network architect",
+        "network administrator",
+        "netwerk",
+        "data center",
+        "cisco"
+      ],
+      "_note": "DevITJobs.nl, the Dutch board on the same platform as GermanTechJobs; same 'devitjobs' fetcher."
+    },
+    "jobicy": {
+      "enabled": true,
+      "region": "EU",
+      "scopes": [
+        "EU"
+      ],
+      "endpoint": "https://jobicy.com/api/v2/remote-jobs",
+      "geos": [
+        "poland",
+        "europe"
+      ],
+      "limit": 100,
+      "_note": "Remote-jobs API (sources.ts). Its tag search finds nothing for multi-word titles, so it is read by region (geo=poland lists roles open to candidates in Poland) and the title gate plus the euRemote gate pick the relevant ones. Two calls a run.",
+      "_attribution": "Jobicy asks to be credited with a direct link to the source; the card link and portal badge do both."
+    },
+    "weworkremotely": {
+      "enabled": true,
+      "region": "EU",
+      "scopes": [
+        "EU"
+      ],
+      "endpoint": "https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss",
+      "feeds": [
+        "https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss"
+      ],
+      "_note": "We Work Remotely, DevOps & Sysadmin category feed (sources.ts) - where network roles land on this board. Most roles there are US-only, so expect few to clear the euRemote gate. Add more category feeds to 'feeds' if wanted."
+    },
+    "careers": {
+      "enabled": true,
+      "region": "PL",
+      "scopes": [
+        "PL"
+      ],
+      "localMarket": true,
+      "fetcher": "careers",
+      "endpoint": "companies.json",
+      "companies": "companies.json",
+      "concurrency": 4,
+      "gapMs": 300,
+      "queries": [
+        "network",
+        "data center",
+        "infrastructure",
+        "sieci",
+        "solution validation",
+        "system validation",
+        "cisco"
+      ],
+      "_note": "Employers' own career sites (careers.ts): the Polish postings of the 100 companies in companies.json, read from their ATS feeds (Workday, Oracle, Greenhouse, Lever, Workable, Teamtailor, Amazon). A posting is kept when every word of a query starts a word of its title (ad-hoc searches use their own terms), then scored like any other job. Lists are reused for 6 h, so ad-hoc searches during the day add little traffic."
+    }
+  },
+  "euRemote": {
+    "_comment": "STRICT gate for EU-region sources. A job is kept ONLY if it looks genuinely performable from Poland. Rationale: ~70-80% of European 'remote' postings still require local tax residence, because the employer would otherwise have to register for Polish payroll/ZUS and take on permanent-establishment risk. denyPhrases is checked FIRST and wins over allowPhrases; non-EU markets (UK, CH, NO, US, CA, LATAM, APAC) are denied here so widening the sources to all of Europe does not drag in results outside the EU.",
+    "allowPhrases": [
+      "remote - europe",
+      "remote europe",
+      "remote, europe",
+      "eu remote",
+      "remote eu",
+      "remote (eu",
+      "anywhere in europe",
+      "anywhere in the eu",
+      "work from anywhere",
+      "fully remote",
+      "100% remote",
+      "remote emea",
+      "emea",
+      "europe",
+      "worldwide",
+      "poland",
+      "b2b",
+      "contractor",
+      "freelance"
+    ],
+    "denyPhrases": [
+      "must be based in germany",
+      "must be based in the netherlands",
+      "must be based in france",
+      "must be based in spain",
+      "must be based in italy",
+      "must be based in portugal",
+      "must be based in belgium",
+      "must be based in austria",
+      "must be based in sweden",
+      "must be based in denmark",
+      "must be based in finland",
+      "must be based in ireland",
+      "must be based in czechia",
+      "must be based in romania",
+      "must reside in germany",
+      "must reside in the netherlands",
+      "germany only",
+      "netherlands only",
+      "france only",
+      "spain only",
+      "italy only",
+      "portugal only",
+      "belgium only",
+      "austria only",
+      "sweden only",
+      "denmark only",
+      "finland only",
+      "ireland only",
+      "czech republic only",
+      "romania only",
+      "only in germany",
+      "residence in germany",
+      "residence in the netherlands",
+      "german residency",
+      "dutch residency",
+      "must live in germany",
+      "must live in the netherlands",
+      "relocation to germany required",
+      "relocation to the netherlands required",
+      "onsite",
+      "on-site required",
+      "usa only",
+      "us only",
+      "united states only",
+      "us-based",
+      "must be located in the us",
+      "latam only",
+      "apac only",
+      "canada only",
+      "uk only",
+      "united kingdom only",
+      "must be based in the uk",
+      "must be based in the united kingdom",
+      "must reside in the uk",
+      "uk residents only",
+      "uk-based",
+      "right to work in the uk",
+      "switzerland only",
+      "must be based in switzerland",
+      "norway only",
+      "must be based in norway"
+    ],
+    "requireGermanLanguage": [
+      "verhandlungssichere deutschkenntnisse",
+      "sehr gute deutschkenntnisse",
+      "fließende deutschkenntnisse",
+      "deutsch auf muttersprachniveau",
+      "fluent german",
+      "native german"
+    ]
+  },
+  "scoring": {
+    "_comment": "Weighted keyword scoring against title + description; a term in the TITLE additionally scores +50% (negatives double), because a term in a description is often just a listed nice-to-have. Matching is whole-term, not substring — see termMatches() in scrape-daily.ts. Score >= highFitThreshold => High fit. The bare 'network'/'routing'/'switching'/'sieci'/'netzwerk' entries exist so a genuine network role scores on its own merits; before they were added such roles were only clearing the threshold via a false-positive substring hit on 'aci' (which matched inside 'capacity' and 'facilities').",
+    "highFitThreshold": 45,
+    "mediumFitThreshold": 20,
+    "positive": {
+      "ccie": 30,
+      "aci": 25,
+      "nexus": 22,
+      "vxlan": 22,
+      "evpn": 22,
+      "network architect": 25,
+      "data center": 18,
+      "datacenter": 18,
+      "data centre": 18,
+      "datacentre": 18,
+      "network automation": 20,
+      "ixia": 25,
+      "spirent": 25,
+      "test automation": 15,
+      "solution validation": 30,
+      "lab automation": 22,
+      "network simulation": 22,
+      "cisco": 18,
+      "nx-os": 20,
+      "nxos": 20,
+      "ucs": 15,
+      "bgp": 12,
+      "ospf": 10,
+      "terraform": 10,
+      "ansible": 10,
+      "python": 8,
+      "robot framework": 18,
+      "pyats": 25,
+      "network engineer": 14,
+      "infrastructure architect": 14,
+      "sd-wan": 10,
+      "firewall": 6,
+      "ftd": 12,
+      "fmc": 12,
+      "network": 10,
+      "netzwerk": 10,
+      "sieci": 10,
+      "network administrator": 14,
+      "network security": 12,
+      "routing": 10,
+      "switching": 10
+    },
+    "negative": {
+      "junior": -25,
+      "intern": -40,
+      "stażyst": -40,
+      "praktyk": -40,
+      "helpdesk": -30,
+      "help desk": -30,
+      "service desk": -30,
+      "1st level": -25,
+      "first line": -25,
+      "sales": -20,
+      "recruiter": -30,
+      "magazynier": -60,
+      "kierowca": -60,
+      "logistics": -25,
+      "supply chain": -25,
+      "kyc": -30,
+      "aml": -30,
+      "facility management": -50,
+      "customer support": -35,
+      "marketing": -35,
+      "salesforce": -30
+    },
+    "polishOnlySignals": [
+      "biegła znajomość języka polskiego",
+      "bardzo dobra znajomość języka polskiego",
+      "język polski na poziomie",
+      "znajomość języka polskiego"
+    ],
+    "cvAlignment": {
+      "_comment": "Re-weights scoring by the CV on file (dashboard/data/cv/current.json). A 'positive' term the CV also contains is multiplied by inCvMultiplier; one the CV lacks by notInCvMultiplier, so aspirational terms (pyats, sd-wan, network architect) count less than proven ones (aci, ccie, ixia). 'vocabulary' lists extra CV skills with no weight of their own: each that appears in both the CV and a posting adds extraSkillWeight (+50% in the title), capped at extraSkillCap in total. A senior CV (any seniorCvSignals term) earns seniorityTitleBonus on titles naming a senior level. Vocabulary terms absent from the CV are ignored, so the list can be broad. Set enabled=false for config-only scoring.",
+      "enabled": true,
+      "inCvMultiplier": 1.0,
+      "notInCvMultiplier": 0.7,
+      "extraSkillWeight": 6,
+      "extraSkillCap": 30,
+      "seniorityTitleBonus": 6,
+      "_ownTitleBonusComment": "A posting whose TITLE contains one of the CV's own role titles (as listed under 'From your CV', e.g. 'technical consulting engineer') is on-domain by definition and earns this bonus — LinkedIn returns titles only, so without it an exact match on the candidate's own role scored below medium. Skipped for titles that are already a weighted positive term ('network engineer').",
+      "ownTitleBonus": 25,
+      "seniorityTitleTerms": ["senior", "sr.", "lead", "principal", "staff", "expert", "architect", "starszy"],
+      "seniorCvSignals": ["senior", "sr.", "ccie"],
+      "vocabulary": [
+        "ndo", "ndfc", "nexus dashboard", "multi-site", "multi-pod", "multisite", "multipod",
+        "mds", "intersight", "ucsm", "cimc", "fabric interconnect",
+        "sdn", "roce", "rocev2", "qos", "multicast", "vpc", "eigrp", "hsrp", "vrrp", "stp",
+        "ixnetwork", "testcenter", "cyberflood", "traffic generation", "test plan", "resiliency", "convergence", "scalability", "performance testing",
+        "infrastructure as code", "infrastructure-as-code", "iac", "aci-as-code", "rest api", "ci/cd", "gitlab", "git", "postman",
+        "vmware", "esxi", "vcenter", "openshift", "splunk", "prometheus", "servicenow", "itil",
+        "nac", "acl",
+        "migration", "tech refresh", "professional services", "consulting engineer", "technical consulting", "customer-facing", "mop", "design validation",
+        "ai infrastructure", "ai fabric", "gpu", "mcp"
+      ]
+    },
+    "_domainGateComment": "Title-first relevance, applied in scrape-daily.ts (titleGate/assessJob) before the fit check. A title naming an onDomainTitle term is relevant on its face and wins over an offDomainTitle hit ('Network Automation Engineer (Python)'). A title naming an offDomainTitle term and no onDomainTitle term is dropped outright, whatever its description scored. weakOnDomainTitle words are too generic to rescue an off-domain title ('Python DevOps Engineer - Cloud Infrastructure' is dropped) and only count with domain evidence. Every other title must show domain evidence in the posting: the score from positive terms EXCLUDING supportingTerms and the CV vocabulary extras must reach weakTitleMinDomainScore (weak titles) or neutralTitleMinDomainScore (titles with no signal either way, which then rate at most medium). An offDomainTitle term that appears in one of the CV's own job titles is not off-domain for that CV. Matching is whole-term, so 'ui' will not fire inside 'build' and 'ios' will not fire inside 'biosphere'. Use 'bun run scrape-daily.ts --rescore' to re-apply edits here to the current jobs.json without scraping.",
+    "weakTitleMinDomainScore": 20,
+    "neutralTitleMinDomainScore": 45,
+    "_hardOffDomainTitleComment": "Role nouns of another profession (software development, management, sales, building trades). Unlike offDomainTitle these win even over an onDomainTitle term: 'Software Engineer Rust & Network Security' is a software job that happens to be about networks, and 'Elektryk – Data Center' is an electrician on a data-center site. A term found in one of the CV's own job titles is exempt, so a developer CV keeps developer roles.",
+    "hardOffDomainTitle": [
+      "software engineer", "software developer", "softwareentwickler", "developer", "programmer",
+      "programista", "programistka", "entwickler", "ontwikkelaar",
+      "project manager", "program manager", "product manager", "product owner", "scrum master", "delivery manager",
+      "sales manager", "account manager", "account executive", "sprzedaży",
+      "electrician", "elektryk", "elektromonter", "hvac", "cooling", "chłodzenia",
+      "computer vision"
+    ],
+    "_supportingTermsComment": "Positive terms that raise the score of a relevant job but are no evidence of the domain on their own: they appear on every DevOps and software posting. Excluded from the domain evidence above.",
+    "supportingTerms": ["python", "terraform", "ansible", "test automation", "robot framework"],
+    "_contextRequiredComment": "Ambiguous scoring terms: one only counts when at least one of its context terms appears in the same posting. 'nexus' is also Sonatype Nexus, the artifact repository on most Java/DevOps postings; 'vpc' is also an AWS VPC.",
+    "contextRequired": {
+      "nexus": ["cisco", "nx-os", "nxos", "aci", "vxlan", "evpn", "data center", "datacenter", "data centre", "switches"],
+      "vpc": ["nexus", "nx-os", "nxos", "cisco", "port-channel", "port channel", "hsrp", "vrrp"]
+    },
+    "onDomainTitle": [
+      "network",
+      "networking",
+      "netzwerk",
+      "netzwerke",
+      "netz",
+      "sieci",
+      "sieciowy",
+      "sieciowa",
+      "sieciowych",
+      "sieciami",
+      "netdevops",
+      "netops",
+      "sdn",
+      "cisco",
+      "aci",
+      "nx-os",
+      "ios-xe",
+      "juniper",
+      "arista",
+      "aruba",
+      "sonic",
+      "data center",
+      "datacenter",
+      "data centre",
+      "datacentre",
+      "rechenzentrum",
+      "noc",
+      "lan",
+      "wan",
+      "lan/wan",
+      "sd-wan",
+      "vxlan",
+      "evpn",
+      "bgp",
+      "ospf",
+      "mpls",
+      "routing",
+      "switching",
+      "router",
+      "switch",
+      "firewall",
+      "fortinet",
+      "palo alto",
+      "rdma",
+      "roce",
+      "rocev2",
+      "infiniband",
+      "dwdm",
+      "wireless",
+      "wi-fi",
+      "wifi",
+      "ccie",
+      "ccnp",
+      "pyats",
+      "ixia",
+      "spirent",
+      "cabling",
+      "sase"
+    ],
+    "weakOnDomainTitle": [
+      "infrastructure",
+      "infrastruktur",
+      "infrastruktury",
+      "infrastrukturalny",
+      "connectivity",
+      "telecom",
+      "telco",
+      "5g",
+      "validation",
+      "walidacji",
+      "observability"
+    ],
+    "offDomainTitle": [
+      "full stack",
+      "full-stack",
+      "fullstack",
+      "frontend",
+      "front-end",
+      "front end",
+      "backend",
+      "back-end",
+      "web developer",
+      "webdeveloper",
+      "javascript",
+      "typescript",
+      "react",
+      "angular",
+      "vue",
+      "node.js",
+      "nodejs",
+      "java developer",
+      ".net",
+      "php",
+      "ruby",
+      "golang",
+      "c++",
+      "c#",
+      "pl/sql",
+      "plsql",
+      "ios",
+      "android",
+      "mobile developer",
+      "flutter",
+      "data scientist",
+      "data science",
+      "data analyst",
+      "data engineer",
+      "data modeller",
+      "data modeler",
+      "data vault",
+      "data warehouse",
+      "bigquery",
+      "snowflake",
+      "kafka",
+      "etl",
+      "machine learning",
+      "ml engineer",
+      "mlops",
+      "llm",
+      "generative ai",
+      "ai engineer",
+      "sap",
+      "salesforce",
+      "avaloq",
+      "oracle database",
+      "database administrator",
+      "dba",
+      "power platform",
+      "sharepoint",
+      "copilot",
+      "microsoft 365",
+      "wms",
+      "edi",
+      "erp",
+      "scada",
+      "business analyst",
+      "technical writer",
+      "treasury",
+      "accountant",
+      "recruiter",
+      "marketing",
+      "sales",
+      "designer",
+      "ux",
+      "ui",
+      "qa automation",
+      "quality assurance",
+      "test manager",
+      "tester",
+      "instructor",
+      "teacher",
+      "structural",
+      "nurse",
+      "driver",
+      "software",
+      "softwareentwicklung",
+      "devops",
+      "devsecops",
+      "sre",
+      "site reliability",
+      "platform engineer",
+      "java",
+      "python developer",
+      "python engineer",
+      "rust",
+      "scala",
+      "kotlin",
+      "swift",
+      "embedded",
+      "firmware",
+      "dataops",
+      "data platform",
+      "analytics",
+      "power bi",
+      "business intelligence",
+      "mainframe",
+      "cobol",
+      "abap",
+      "crm"
+    ]
+  },
+  "_scopes": "Search scopes selectable in the UI and via --scope. PL=Polish market, DE=Germany, NL=Netherlands, EU=EU-wide remote, ALL=everything (used by the daily 09:00 job). A source with no 'scopes' key belongs to every scope.",
+  "languageGate": {
+    "_comment": "Tags every job with the non-English languages it requires (job.languages, see language-req.ts): named in the title, named next to a requiredMarker or a CEFR level (unless an optionalMarker sits closer), a knowledge compound such as 'Deutschkenntnisse', or - with postingLanguage - the language the description is written in. The dashboard's 'Language req.' menu hides jobs by these tags; by default it hides languages profile.languages does not list. dropAtScrape=true restores the old behaviour of discarding, at scrape time, jobs that need a language below profile.minWorkingLevel. fetchDescriptions reads the full advert for sources that only return a title, cached for 72h under data/cache/. Set enabled=false to turn language tagging off.",
+    "enabled": true,
+    "dropAtScrape": false,
+    "postingLanguage": true,
+    "fetchDescriptions": {
+      "_comment": "Sources whose search results carry no real description. Their adverts are fetched once per job (Arbeitsagentur jobdetails API, linkedin-search 'detail') so a 'requires fluent German' line is seen. Concurrency/gap keep LinkedIn below its rate limit.",
+      "enabled": true,
+      "portals": ["arbeitsagentur", "linkedin", "linkedinDe", "linkedinNl", "linkedinEu"],
+      "linkedinConcurrency": 2,
+      "linkedinGapMs": 700,
+      "apiConcurrency": 4
+    },
+    "optionalMarkers": [
+      "nice to have",
+      "nice-to-have",
+      "is a plus",
+      "a plus",
+      "advantage",
+      "advantageous",
+      "beneficial",
+      "desirable",
+      "preferred",
+      "bonus",
+      "would be a plus",
+      "not required",
+      "optional",
+      "mile widziane",
+      "mile widziana",
+      "atutem",
+      "atut",
+      "dodatkowym atutem",
+      "będzie plusem",
+      "nie jest wymagana",
+      "von vorteil",
+      "wünschenswert",
+      "nice to have",
+      "erwünscht",
+      "een pré",
+      "pre is",
+      "een plus",
+      "ist ein plus",
+      "kein muss",
+      "nicht erforderlich",
+      "nicht notwendig",
+      "nicht zwingend",
+      "not necessary",
+      "not needed",
+      "nie wymagana",
+      "nie jest wymagany",
+      "niet vereist",
+      "geen vereiste",
+      "lessons",
+      "courses",
+      "classes",
+      "learn",
+      "lekcje",
+      "kursy",
+      "nauka",
+      "sprachkurs",
+      "taalcursus",
+      "appreciated",
+      "welcome",
+      "big plus",
+      "an asset",
+      "ideally",
+      "good to have",
+      "mile widziany",
+      "mile widziani",
+      "idealerweise",
+      "gerne",
+      "pluspunt"
+    ],
+    "requiredMarkers": [
+      "required",
+      "must",
+      "mandatory",
+      "fluent",
+      "fluency",
+      "proficient",
+      "proficiency",
+      "native",
+      "business level",
+      "professional working",
+      "very good command",
+      "good command",
+      "excellent command",
+      "wymagana",
+      "wymagane",
+      "wymagany",
+      "biegła",
+      "biegle",
+      "bardzo dobra",
+      "swobodna",
+      "komunikatywna",
+      "verhandlungssicher",
+      "fließend",
+      "fliessend",
+      "sehr gute",
+      "muttersprache",
+      "muttersprachniveau",
+      "zwingend",
+      "voraussetzung",
+      "vereist",
+      "vloeiend",
+      "uitstekende",
+      "requires",
+      "requirement",
+      "spoken",
+      "written",
+      "erforderlich",
+      "vorausgesetzt",
+      "notwendig",
+      "unabdingbar",
+      "muss",
+      "gute",
+      "sehr gut",
+      "in wort und schrift",
+      "verhandlungssichere",
+      "verhandlungssicheres",
+      "fließende",
+      "fließendes",
+      "fliessende",
+      "płynna",
+      "plynna",
+      "beheersing",
+      "goede"
+    ],
+    "levels": {
+      "a1": 1,
+      "a2": 2,
+      "b1": 3,
+      "b2": 4,
+      "c1": 5,
+      "c2": 6
+    }
+  }
+}

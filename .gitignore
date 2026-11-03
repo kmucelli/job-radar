@@ -1,0 +1,7 @@
+# Personal runtime data, created on first run: your CV, the job list, your
+# application stages and notes, caches and logs. Never commit it.
+dashboard/data/
+
+node_modules/
+.env
+*.log

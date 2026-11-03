@@ -1,0 +1,321 @@
+{
+  "_comment": "Smart keyword expansion map for Job Radar ad-hoc searches. Seeded from CV-KM-2026 (CCIE-DC, Cisco DC/SDN/automation/validation). EDIT FREELY - this file is data, not code. Expansion is applied ONLY to ad-hoc searches (POST /api/scrape/adhoc); the daily config.json queries are untouched. The dashboard's job-list search box reads this file too (abbreviations, spellings, synonym titles).",
+
+  "_howItWorks": [
+    "1. The query is normalised: lowercased, accents folded to ASCII (inżynier -> inzynier, Fördertechnik -> fordertechnik), punctuation stripped, whitespace collapsed.",
+    "2. Typos and plurals are corrected against every word in this file ('netwrok engineer' -> 'network engineer', 'engineers' -> 'engineer'). The query as typed is still searched first.",
+    "3. 'abbreviations' expand ONE WAY (abbr -> full), so typing 'dc engineer' also searches 'data center engineer'. Entries listed in 'techAcronyms' still expand for matching, but their spelled-out form is a weak search term ('cisco application centric infrastructure'), so it ranks low.",
+    "4. 'contractions' go the other way (full -> abbr) but only for forms employers genuinely publish. Kept as a separate allowlist because blanket contraction produces junk like 'network engr' that matches nothing and wastes a request against every portal.",
+    "5. 'spellings' normalises equivalent spellings (center/centre) so one query covers both.",
+    "6. 'synonyms' groups are bidirectional: matching ANY member (or one of its pl/de/nl titles) yields the members. A group matches when the query IS a member, CONTAINS a member as whole words ('cloud network engineer' contains 'network engineer'), or - only for a short topic that is not itself a job title - is contained in a member ('devops' -> 'devops engineer'). A recognised title no longer drags in every group that merely mentions it.",
+    "7. 'modifiers' are seniority/qualifier prefixes that are stripped for matching and re-applied to the expansions, so 'senior network engineer' searches 'senior network administrator' rather than the bare title.",
+    "8. A query without a role noun ('roleNouns') becomes a title too: 'kubernetes' -> 'kubernetes engineer'. Certifications ('certifications') are not turned into titles ('ccie engineer' is not a posting).",
+    "9. '_vendorHints' and 'familyHints' map technologies and certifications to a role family; they are used only when no synonym group matched. _vendorHints also feeds the CV keyword chips (cv-keywords.ts); familyHints is expansion-only.",
+    "10. Every candidate is scored by how close it is to the query (exact family > contained title > topic match > vendor hint, plus word overlap), and the best MAX_EXPANSIONS (12) are kept.",
+    "11. 'pl' / 'de' / 'nl' on a synonym group are native-language titles for that family. Up to 2 per language are added ON TOP of the cap; the dashboard only searches the ones whose market is in the selected scope (Poland -> pl, Germany -> de, Netherlands -> nl, Everywhere -> all, EU remote -> none). They are folded to ASCII because the scraper only accepts ASCII arguments."
+  ],
+
+  "abbreviations": {
+    "dc": "data center",
+    "ddc": "data center",
+    "noc": "network operations center",
+    "soc": "security operations center",
+    "sre": "site reliability engineer",
+    "sdn": "software defined networking",
+    "sd-wan": "software defined wan",
+    "iac": "infrastructure as code",
+    "ci/cd": "continuous integration",
+    "eng": "engineer",
+    "engr": "engineer",
+    "arch": "architect",
+    "admin": "administrator",
+    "sys": "systems",
+    "net": "network",
+    "netw": "network",
+    "infra": "infrastructure",
+    "ops": "operations",
+    "sec": "security",
+    "svcs": "services",
+    "sr": "senior",
+    "snr": "senior",
+    "jr": "junior",
+    "tcs": "technical consulting",
+    "tce": "technical consulting engineer",
+    "ps": "professional services",
+    "qa": "quality assurance",
+    "vm": "virtualization",
+    "k8s": "kubernetes",
+    "aci": "application centric infrastructure",
+    "ndfc": "nexus dashboard fabric controller",
+    "ndo": "nexus dashboard orchestrator",
+    "evpn": "ethernet vpn",
+    "ucs": "unified computing system",
+    "fmc": "firepower management center",
+    "ftd": "firepower threat defense",
+    "nac": "network access control",
+    "ise": "identity services engine",
+    "wan": "wide area network",
+    "lan": "local area network"
+  },
+
+  "_techAcronymsComment": "Abbreviations whose spelled-out form is NOT how employers write the title. They still expand for matching, but the long form is ranked as a weak search term.",
+  "techAcronyms": ["aci", "ndfc", "ndo", "evpn", "ucs", "fmc", "ftd", "nac", "ise", "wan", "lan", "sdn", "sd-wan", "iac", "ci/cd", "vm"],
+
+  "_contractionsComment": "full -> abbreviated. ONLY forms that really appear in job titles. Adding 'engineer': 'eng' here would generate 'network eng', which no employer posts.",
+  "contractions": {
+    "data center": "dc",
+    "senior": "sr",
+    "junior": "jr",
+    "site reliability engineer": "sre",
+    "software defined wan": "sd-wan",
+    "network operations center": "noc",
+    "infrastructure as code": "iac"
+  },
+
+  "spellings": {
+    "data center": ["data centre", "datacenter", "datacentre", "data-center", "data-centre"],
+    "virtualization": ["virtualisation"],
+    "optimization": ["optimisation"],
+    "analyzer": ["analyser"],
+    "presales": ["pre-sales", "pre sales"]
+  },
+
+  "modifiers": [
+    "senior", "junior", "lead", "principal", "staff", "chief", "head of",
+    "mid", "mid-level", "entry level", "graduate", "trainee",
+    "l1", "l2", "l3", "tier 1", "tier 2", "tier 3",
+    "ii", "iii", "iv"
+  ],
+
+  "_roleNounsComment": "Words that make a query a job title. A query with none of them ('kubernetes') also gets '<query> engineer'. German compounds count when they END in a long role noun ('netzwerkadministrator').",
+  "roleNouns": [
+    "engineer", "architect", "administrator", "admin", "consultant", "specialist", "developer",
+    "manager", "lead", "analyst", "technician", "expert", "owner", "tester", "operator",
+    "director", "officer", "head", "scientist", "designer", "programmer", "coordinator", "advisor", "sre",
+    "inżynier", "specjalista", "architekt", "konsultant", "kierownik",
+    "ingenieur", "techniker", "berater", "entwickler", "leiter", "spezialist",
+    "beheerder", "adviseur", "ontwikkelaar", "medewerker"
+  ],
+
+  "certifications": ["ccie", "ccnp", "ccna", "ccde", "jncie", "jncip", "jncia", "cissp", "pcnse", "itil", "ccsp"],
+
+  "synonyms": [
+    {
+      "_group": "network engineering core",
+      "terms": [
+        "network engineer",
+        "network administrator",
+        "network specialist",
+        "network consultant",
+        "networking engineer",
+        "network infrastructure engineer",
+        "network support engineer"
+      ],
+      "pl": ["inżynier sieci", "administrator sieci", "specjalista ds. sieci"],
+      "de": ["netzwerkadministrator", "netzwerkingenieur", "netzwerktechniker"],
+      "nl": ["netwerkbeheerder", "netwerkspecialist"]
+    },
+    {
+      "_group": "network architecture / design",
+      "terms": [
+        "network architect",
+        "network administrator",
+        "network design engineer",
+        "network solution architect",
+        "infrastructure architect",
+        "solutions architect",
+        "network planning engineer",
+        "principal network engineer"
+      ],
+      "pl": ["architekt sieci"],
+      "de": ["netzwerkarchitekt"],
+      "nl": ["netwerkarchitect"]
+    },
+    {
+      "_group": "data center",
+      "terms": [
+        "data center engineer",
+        "data center network engineer",
+        "data center architect",
+        "data center infrastructure engineer",
+        "dc network engineer",
+        "datacenter engineer",
+        "fabric engineer",
+        "data center operations engineer"
+      ],
+      "de": ["rechenzentrum"]
+    },
+    {
+      "_group": "automation / netdevops",
+      "terms": [
+        "network automation engineer",
+        "network devops engineer",
+        "netdevops engineer",
+        "infrastructure automation engineer",
+        "automation engineer",
+        "devops engineer",
+        "platform engineer",
+        "site reliability engineer",
+        "infrastructure engineer"
+      ],
+      "pl": ["inżynier devops"]
+    },
+    {
+      "_group": "validation / test",
+      "terms": [
+        "solution validation engineer",
+        "network test engineer",
+        "network test automation engineer",
+        "test automation engineer",
+        "validation engineer",
+        "qa automation engineer",
+        "system validation engineer",
+        "interoperability test engineer",
+        "solution integration engineer"
+      ],
+      "pl": ["tester automatyzujący", "inżynier testów"],
+      "de": ["testingenieur", "testautomatisierer"],
+      "nl": ["testautomatiseerder"]
+    },
+    {
+      "_group": "consulting / delivery",
+      "terms": [
+        "technical consulting engineer",
+        "solution architect",
+        "professional services engineer",
+        "network consultant",
+        "implementation engineer",
+        "deployment engineer",
+        "field engineer",
+        "customer success engineer",
+        "technical solutions engineer"
+      ],
+      "pl": ["konsultant techniczny", "inżynier wdrożeń"],
+      "de": ["technischer berater", "it-berater"],
+      "nl": ["technisch consultant"]
+    },
+    {
+      "_group": "network security",
+      "terms": [
+        "network security engineer",
+        "security engineer",
+        "firewall engineer",
+        "security consultant",
+        "infrastructure security engineer",
+        "cybersecurity engineer",
+        "security solutions engineer"
+      ],
+      "pl": ["inżynier ds. bezpieczeństwa", "specjalista ds. bezpieczeństwa it"],
+      "de": ["it-sicherheitsingenieur", "netzwerksicherheit"]
+    },
+    {
+      "_group": "cloud / systems",
+      "terms": [
+        "cloud network engineer",
+        "cloud infrastructure engineer",
+        "cloud engineer",
+        "systems engineer",
+        "infrastructure engineer",
+        "virtualization engineer",
+        "compute engineer"
+      ],
+      "pl": ["administrator systemów", "inżynier systemowy"],
+      "de": ["systemadministrator", "systemingenieur"],
+      "nl": ["systeembeheerder"]
+    },
+    {
+      "_group": "support tiers",
+      "terms": [
+        "technical support engineer",
+        "escalation engineer",
+        "noc engineer",
+        "network operations engineer",
+        "service desk engineer",
+        "support specialist"
+      ],
+      "pl": ["inżynier wsparcia technicznego", "specjalista ds. wsparcia it"],
+      "de": ["it-support", "supportingenieur"],
+      "nl": ["servicedesk medewerker"]
+    },
+    {
+      "_group": "routing & switching",
+      "terms": [
+        "routing and switching engineer",
+        "network engineer",
+        "backbone engineer",
+        "core network engineer",
+        "ip engineer",
+        "wan engineer"
+      ]
+    },
+    {
+      "_group": "presales / solutions engineering",
+      "terms": [
+        "presales engineer",
+        "presales consultant",
+        "solutions engineer",
+        "sales engineer",
+        "technical presales engineer",
+        "presales architect",
+        "customer solutions engineer"
+      ],
+      "pl": ["inżynier sprzedaży"],
+      "de": ["vertriebsingenieur"]
+    }
+  ],
+
+  "_vendorHints": {
+    "_comment": "Technology tokens that imply a role family. A query containing one of these picks up the mapped group's terms as lower-priority extras.",
+    "aci": "data center",
+    "nexus": "data center",
+    "vxlan": "data center",
+    "evpn": "data center",
+    "ucs": "cloud / systems",
+    "nx-os": "data center",
+    "cisco": "network engineering core",
+    "ansible": "automation / netdevops",
+    "terraform": "automation / netdevops",
+    "python": "automation / netdevops",
+    "robot framework": "validation / test",
+    "ixia": "validation / test",
+    "spirent": "validation / test",
+    "firepower": "network security",
+    "ftd": "network security",
+    "fmc": "network security",
+    "bgp": "routing & switching",
+    "ospf": "routing & switching"
+  },
+
+  "familyHints": {
+    "_comment": "Same idea as _vendorHints, for expansion only. Kept separate because cv-keywords.ts mines _vendorHints for the CV keyword chips, and these broad terms (cloud, linux, aws) would change those suggestions.",
+    "kubernetes": "automation / netdevops",
+    "k8s": "automation / netdevops",
+    "docker": "automation / netdevops",
+    "gitlab": "automation / netdevops",
+    "jenkins": "automation / netdevops",
+    "observability": "automation / netdevops",
+    "openshift": "cloud / systems",
+    "aws": "cloud / systems",
+    "azure": "cloud / systems",
+    "gcp": "cloud / systems",
+    "cloud": "cloud / systems",
+    "vmware": "cloud / systems",
+    "linux": "cloud / systems",
+    "ccie": "network engineering core",
+    "ccnp": "network engineering core",
+    "ccna": "network engineering core",
+    "jncie": "network engineering core",
+    "juniper": "network engineering core",
+    "arista": "data center",
+    "palo alto": "network security",
+    "fortinet": "network security",
+    "fortigate": "network security",
+    "zscaler": "network security",
+    "check point": "network security",
+    "cissp": "network security",
+    "mpls": "routing & switching",
+    "itil": "support tiers",
+    "servicenow": "support tiers",
+    "presales": "presales / solutions engineering"
+  }
+}
